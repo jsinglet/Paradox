@@ -1,0 +1,46 @@
+// Simple Var Declarations
+Int a;
+Int b;
+String c;
+
+// Assignments
+c := 2;
+d := (3 + 3);
+d := (3 + a + (a * 2));
+
+// Define a function
+Int myFunction1(Int x, Int y) 
+{
+   String a;
+   String b;
+
+   return a;
+
+}
+
+// Define a function with implicit variables
+Int myFunction2(Int x, Int y) implicitly [Int zzzz, String xxxxxx]
+{
+   String a;
+   String b;
+
+   return x;
+}
+
+// Function calls
+// a = myFunction1(2,3);
+// a = myFunction2(a,b);
+
+
+// If statement
+
+// if( a > 3) {
+//     a := 100;
+// } else{
+//     a := 0;
+// }
+
+// While loop
+// while (a > 0){
+	
+// }
