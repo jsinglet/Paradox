@@ -1,11 +1,12 @@
+{-# LANGUAGE QuasiQuotes #-} 
+
 module ParserTests where
 
 import Test.HUnit
-
 import Scanner
 import Parser
-  
-
+import QQ
+   
 -- For quick parsing of strings into ASTs
 testParse :: String -> Program
 testParse = parse.alexScanTokens
@@ -39,5 +40,20 @@ testParseFunctionWithImplicitParams :: Assertion
 testParseFunctionWithImplicitParams = testParse "fn Int myFunction(Int x) implicitly [Int y] { Int x; }" @?= Program (BlockList [FunctionBlockStatement IntType "myFunction" (VarSpecList [VarSpec IntType "x"]) (ImplicitVarSpec (VarSpecList [VarSpec IntType "y"])) (FunctionBody (StatementList [LocalVarDeclStatement (VarSpec IntType "x")]))])
 
 
+
+mixedProgram :: String
+mixedProgram = [qq|
+Int x;
+Int y;
+
+y:=3;
+
+fn Int myFunction() { 
+     return 1; 
+}
+|]
+
 testParseMixedProgram :: Assertion
-testParseMixedProgram = testParse "Int x; Int y; y:=3; fn Int myFunction() { return 1; }" @?= Program (BlockList [BlockStatement (StatementList [LocalVarDeclStatement (VarSpec IntType "x"),LocalVarDeclStatement (VarSpec IntType "y"),AssignStatement "y" (Term (Factor (FactorIntegerLiteralExpression 3)))]),FunctionBlockStatement IntType "myFunction" (VarSpecList []) (ImplicitVarSpec (VarSpecList [])) (FunctionBody (StatementList [ReturnStatement (Term (Factor (FactorIntegerLiteralExpression 1)))]))])
+testParseMixedProgram = testParse mixedProgram @?= Program (BlockList [BlockStatement (StatementList [LocalVarDeclStatement (VarSpec IntType "x"),LocalVarDeclStatement (VarSpec IntType "y"),AssignStatement "y" (Term (Factor (FactorIntegerLiteralExpression 3)))]),FunctionBlockStatement IntType "myFunction" (VarSpecList []) (ImplicitVarSpec (VarSpecList [])) (FunctionBody (StatementList [ReturnStatement (Term (Factor (FactorIntegerLiteralExpression 1)))]))])
+
+
