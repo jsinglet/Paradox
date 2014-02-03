@@ -23,7 +23,8 @@ tokens :-
        "//".*		;
        "Int"		{ \s -> TokenInteger }
        "String"		{ \s -> TokenString  }
-       "Bool"		{ \s -> TokenBoolean }
+       "Boolean"	{ \s -> TokenBoolean }
+       "Void"		{\s -> TokenVoid }
        "true"		{ \s -> TokenBooleanLiteral True }
        "false"		{ \s -> TokenBooleanLiteral False }
        "="		{ \s -> TokenEquals }
@@ -56,6 +57,7 @@ data Token
     = TokenInteger 
     | TokenString 
     | TokenBoolean 
+    | TokenVoid 
     | TokenBooleanLiteral Bool
     | TokenIntegerLiteral Int
     | TokenStringLiteral String

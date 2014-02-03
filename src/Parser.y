@@ -13,6 +13,7 @@ import System.Environment
 "Int"    { TokenInteger }
 "String" { TokenString  }
 "Boolean"   { TokenBoolean }
+"Void" { TokenVoid    }
 boolean_literal  { TokenBooleanLiteral $$ }
 integer_literal  { TokenIntegerLiteral $$ }
 string_literal   { TokenStringLiteral $$  }
@@ -38,27 +39,36 @@ ident		 { TokenIdent $$      	  }
 
 %%
 
-Program : Block { Program $1 }
+Program : BlockList { Program $1 }
 
-Block : StatementList { Block $1 }
+BlockList : BlockStatement { BlockList [$1] }
+	  | BlockStatement BlockList { combineBlockLists $1 $2}
 
-StatementList : Statement { StatementList [$1] }
-	      | Statement StatementList{ combineStatementLists $1 $2 } 
+BlockStatement : FunctionBlock { $1 }
+	       | StatementList { BlockStatement $1 }
+      
+FunctionBlock : 'fn'  FnType ident '(' VarSpecList ')' FunctionBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $ VarSpecList []) $7  }
+	       | 'fn' FnType ident '(' VarSpecList ')' 'implicitly' '[' VarSpecList ']' FunctionBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $9) $11 }
+
+
+StatementList :  Statement { StatementList [$1] }
+	      | Statement StatementList { combineStatementLists $1 $2 } 
 
 
 Statement : VarSpec ';' { LocalVarDeclStatement $1 }
 	  | ident ':=' Expression ';' { AssignStatement $1 $3 }
 	  | 'return' Expression ';' { ReturnStatement $2 }
-	  | Type ident '(' VarSpecList ')' FunctionBody { DefineFunctionStatement $1 $2 $4 (ImplicitVarSpec $ VarSpecList []) $6  }
-	  | Type ident '(' VarSpecList ')' 'implicitly' '[' VarSpecList ']' FunctionBody { DefineFunctionStatement $1 $2 $4 (ImplicitVarSpec $8) $10  }
 
-VarSpecList : VarSpec { VarSpecList [$1] }
+VarSpecList : { VarSpecList [] }
+	    | VarSpec { VarSpecList [$1] }
 	    | VarSpec ',' VarSpecList { combineVarSpecLists $1 $3 }
 
 VarSpec : Type ident { VarSpec $1 $2 }
 
 FunctionBody : '{' StatementList '}' { FunctionBody $2 }
 	
+FnType : Type { $1 }
+       | "Void" {VoidType}
 
 Type : "Int" {IntType}
      | "String" {StringType}
@@ -84,6 +94,8 @@ Term : Term '*' Factor { MultiplyTerm $1 $3 }
 {
 
 -- | Data types for productions
+combineBlockLists :: BlockStatement -> BlockList -> BlockList
+combineBlockLists b (BlockList blocks) = BlockList (b:blocks)
 
 combineStatementLists :: Statement -> StatementList -> StatementList
 combineStatementLists s (StatementList stats) = StatementList (s:stats)
@@ -92,11 +104,16 @@ combineVarSpecLists :: VarSpec -> VarSpecList -> VarSpecList
 combineVarSpecLists s (VarSpecList specs) = VarSpecList (s:specs)
 
 data Program 
-    = Program Block 
+    = Program BlockList 
       deriving (Show, Eq)
 
-data Block 
-    = Block StatementList
+data BlockStatement
+    = BlockStatement StatementList
+    | FunctionBlockStatement Type Ident VarSpecList VarSpecList FunctionBody 
+      deriving (Show, Eq)
+
+data BlockList
+     = BlockList [BlockStatement]
       deriving (Show, Eq)
 
 data VarSpec = 
@@ -112,7 +129,6 @@ data VarSpecList =
 data Statement 
     = AssignStatement Ident Expression
     | LocalVarDeclStatement VarSpec
-    | DefineFunctionStatement Type Ident VarSpecList VarSpecList FunctionBody 
     | ReturnStatement Expression
       deriving (Show, Eq)
 
@@ -150,6 +166,7 @@ data Type
     = IntType 
     | StringType
     | BooleanType 
+    | VoidType
     | IdentType Ident
       deriving (Show, Eq)  
                
