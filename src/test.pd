@@ -9,7 +9,7 @@ d := (3 + 3);
 d := (3 + a + (a * 2));
 
 // Define a function
-Int myFunction1(Int x, Int y) 
+fn Int myFunction1(Int x, Int y) 
 {
    String a;
    String b;
@@ -19,7 +19,7 @@ Int myFunction1(Int x, Int y)
 }
 
 // Define a function with implicit variables
-Int myFunction2(Int x, Int y) implicitly [Int zzzz, String xxxxxx]
+fn Int myFunction2(Int x, Int y) implicitly [Int zzzz, String xxxxxx]
 {
    String a;
    String b;

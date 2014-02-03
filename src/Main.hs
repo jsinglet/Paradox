@@ -9,20 +9,44 @@ import Scanner
  
 
  
-main :: IO ()
-main = do 
-  argv <- getArgs
-  file <- readFile (head argv)
+doAst :: String -> IO ()
+doAst f = do 
+  file <- readFile f
   let parseTree = parse (alexScanTokens file)  
   putStrLn ("Parsed AST: " ++ show(parseTree))
-  print "done"
+
+doUnparse :: String -> IO ()
+doUnparse f = doAst f
+
+main = do  
+    command <- getArgs
+    case command of
+      (h:t) -> do
+         let action = lookup h dispatch
+         case action of
+           Just a -> a (head t)
+           Nothing -> invalidUsage
+      []     -> invalidUsage
+         
+dispatch :: [(String, (String -> IO ()))]  
+dispatch =  [ ("-ast", doAst)  
+            , ("-unparse", doUnparse)  
+            ]  
+
+invalidUsage :: IO ()
+invalidUsage = do
+  putStrLn "Invalid Arguments"
+  help
+
+
+help :: IO ()
+help = putStrLn helpMessage
+
 
 
 
 helpMessage :: String
 helpMessage = [qq|Usage: paradox [-unparse | -ast] FILE
-Used with no arguments, parses FILE. Reports error if there is a syntax error.
-
 -unparse:	Display the UNPARSE of a program in FILE.
 -ast:		Display the AST of program contained in FILE.
 |]
