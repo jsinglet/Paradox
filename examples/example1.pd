@@ -31,8 +31,8 @@ fn Int myFunction2(Int x, Int y) implicitly [Int zzzz, String xxxxxx]
 }
 
 // Function calls
-// a = myFunction1(2,3);
-// a = myFunction2(a,b);
+a := myFunction1(2+2,3);
+a := myFunction2(a,b);
 
 
 // If statement

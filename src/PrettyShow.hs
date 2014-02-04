@@ -45,6 +45,7 @@ instance PrettyShow StatementList where
                                                                                    ) stmts) ++ (indent $  depth-1) ++  "]\n"
                                                                              
 instance PrettyShow Statement where
+    prettyShow _ = error "Not Implemented"
     prettyParse (AssignStatement ident expr) depth acc = acc ++ (indent depth) ++ "(AssignStatement " ++ (show ident) ++ " " ++ (show expr) ++ ")\n"
     prettyParse (LocalVarDeclStatement spec)  depth acc = acc ++ (indent depth) ++ "(LocalVarDeclStatement " ++ (show spec) ++ ")\n"
     prettyParse (ReturnStatement stmt) depth acc = acc ++ (indent depth) ++ "(ReturnStatement " ++ (show stmt) ++ "\n"
