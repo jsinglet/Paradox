@@ -66,6 +66,8 @@ Statement : VarSpec ';' { LocalVarDeclStatement $1 }
     | 'while' '(' Expression ')' BlockBody { WhileStatement $3 $5 }
     | 'if'    '(' Expression ')' BlockBody { IfStatement $3 $5 (BlockBody $ StatementList [Skip]) }
     | 'if'    '(' Expression ')' BlockBody 'else' BlockBody { IfStatement $3 $5 $7 }
+    | ident '(' ActualParametersList ')' ';' { FunctionCallStatement $ FunctionCallExpression $1 $3 }
+
 
 VarSpecList : { VarSpecList [] }
     | VarSpec { VarSpecList [$1] }
@@ -163,6 +165,7 @@ data Statement
     | ReturnStatement Expression
     | WhileStatement Expression BlockBody
     | IfStatement Expression BlockBody BlockBody
+    | FunctionCallStatement Expression -- note here this should ONLY ever be FunctionCallExpression
     | Skip
       deriving (Show, Eq)
 
