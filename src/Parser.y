@@ -64,7 +64,6 @@ Statement : VarSpec ';' { LocalVarDeclStatement $1 }
     | ident ':=' Expression ';' { AssignStatement $1 $3 }
     | 'return' Expression ';' { ReturnStatement $2 }
     | 'while' '(' Expression ')' BlockBody { WhileStatement $3 $5 }
-    | 'while' '(' Expression ')' BlockBody { WhileStatement $3 $5 }
     | 'if'    '(' Expression ')' BlockBody { IfStatement $3 $5 (BlockBody $ StatementList [Skip]) }
     | 'if'    '(' Expression ')' BlockBody 'else' BlockBody { IfStatement $3 $5 $7 }
 

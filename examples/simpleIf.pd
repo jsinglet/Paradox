@@ -1,0 +1,7 @@
+//
+// Naked If Statement
+//
+
+if(a>b){
+	Int x;
+}
