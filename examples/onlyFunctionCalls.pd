@@ -1,0 +1,5 @@
+// Simple test of function calls
+
+a:= myFunction();
+
+a:= myFunction2(a,b);

@@ -49,4 +49,6 @@ instance PrettyShow Statement where
     prettyParse (AssignStatement ident expr) depth acc = acc ++ (indent depth) ++ "(AssignStatement " ++ (show ident) ++ " " ++ (show expr) ++ ")\n"
     prettyParse (LocalVarDeclStatement spec)  depth acc = acc ++ (indent depth) ++ "(LocalVarDeclStatement " ++ (show spec) ++ ")\n"
     prettyParse (ReturnStatement stmt) depth acc = acc ++ (indent depth) ++ "(ReturnStatement " ++ (show stmt) ++ "\n"
-
+    prettyParse (Skip) depth acc = acc ++ "Skip" ++ "\n"
+--    prettyParse (IfStatement condition trueBranch (BlockBody (StatementList [Skip]))) depth acc =  acc ++ (indent depth) ++ "(IfStatement " ++ (show condition) ++ (prettyParse trueBranch (depth+1)  "") 
+    prettyParse (IfStatement condition trueBranch falseBranch) depth acc =  acc ++ (indent depth) ++ "(IfStatement " ++ (show condition) ++ "\n" ++ (prettyParse trueBranch (depth+4)  "") ++  (prettyParse falseBranch (depth+4)  "") 

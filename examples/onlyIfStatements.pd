@@ -1,0 +1,28 @@
+//
+// Doing interesting stuff with if statements.
+//
+
+if(a>b){
+	Int a;
+}
+
+
+if(a=b){
+	Int a;
+}else{
+	Int b;
+}
+
+
+if(a=b){
+	if(a=b){
+		Int b;
+	}
+}else{
+	if(a=b){
+
+	}else{
+
+	  Int z;
+	}
+}
