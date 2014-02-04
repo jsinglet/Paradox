@@ -18,15 +18,26 @@ main = defaultMainWithOpts
                         testCase "simpleAssign" testParseAssign
                        ,testCase "exprAssign"   testParseAssignExpr1
                        ,testCase "exprAssignNested" testParseAssignExpr2 
+                       ,testCase "exprAssignFunction1" testFunctionCall1
+                       ,testCase "exprAssignFunction2" testFunctionCall2
+                       ,testCase "testEqualityExpression" testEqualityExpression
                        ]
        , testGroup "Functions" [
                         testCase "simpleFunction" testParseFunction
                        ,testCase "functionWithParams" testParseFunctionWithParams
                        ,testCase "functionWithImplicitParams" testParseFunctionWithImplicitParams
+                       ,testCase "functionWithImplicitParamsAndReturn" testParseFunctionWithImplicitParamsAndReturn
                        ]
        , testGroup "Integration Test #1" [
                         testCase "mixed1" testParseMixedProgram 
                        ]
+
+       , testGroup "Control Flow" [
+                        testCase "simpleIf" testIfStatement
+                       ,testCase "ifElse" testIfElseStatement
+                       ,testCase "ifElseNested" testNestedIfElseStatement
+                       ]
+                                 
        ] mempty
 
 

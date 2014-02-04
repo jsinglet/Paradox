@@ -98,6 +98,7 @@ Expression : Factor { FactorExpression }
     | Expression '-' Term { MinusExpression  $1 $3 }
     | Expression '>' Term { GtExpression $1 $3 }
     | Expression '<' Term { LtExpression $1 $3 }
+    | Expression '=' Term { EqualsExpression $1 $3 }
     | Term                { Term $1 }
     | ident '(' ActualParametersList ')' { FunctionCallExpression $1 $3 }
 
@@ -180,6 +181,7 @@ data Expression
     | MinusExpression Expression Term
     | LtExpression Expression Term
     | GtExpression Expression Term
+    | EqualsExpression Expression Term
     | Term Term
     | FunctionCallExpression Ident ActualParametersList
       deriving (Show, Eq)
