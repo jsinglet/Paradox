@@ -23,7 +23,14 @@ tokenMap =  [ (TokenAssign, ":=")
             , (TokenCloseBracket, "]")
             , (TokenFn, "fn")
             , (TokenImplicitly, "implicitly")
-            , (TokenSep, ",")]  
+            , (TokenSep, ",")
+            , (TokenAdd, "+")
+            , (TokenMinus, "-")
+            , (TokenMultiply, "*")
+            , (TokenDivide, "/")
+            , (TokenGt, ">")
+            , (TokenLt, "<")
+            , (TokenEquals, "=")]  
 
 mapToken :: Token -> String
 mapToken t = do
@@ -62,6 +69,10 @@ instance UnparseShow BlockStatement where
     unparse (BlockStatement bs) depth acc = acc ++ (unparse bs depth "")
     unparse (FunctionBlockStatement returnType name formalParameters implicitParameters body) depth acc = acc ++ (indent depth) ++ (mapToken TokenFn) ++ " " ++  (untoken returnType) ++ " " ++ name ++ (mapToken TokenOpenParen) ++ (unparse formalParameters depth acc)  ++ (mapToken TokenCloseParen) ++ " " ++ (unparse implicitParameters depth acc) ++ (unparse body depth acc) 
 
+
+instance UnparseShow ActualParametersList where
+    unparse (ActualParametersList params) depth acc = concat $ intersperse ", " (map (\param -> unparse param depth "") params)
+
 instance UnparseShow VarSpecList where 
     unparse (VarSpecList specs) depth acc = concat $ intersperse ", " (map (\spec -> unparse spec depth "") specs)
     unparse (ImplicitVarSpec vsl) depth acc = (mapToken TokenImplicitly) ++ " " ++ (mapToken TokenOpenBracket) ++ (unparse vsl depth acc) ++ (mapToken TokenCloseBracket)
@@ -86,5 +97,31 @@ instance UnparseShow Statement where
     unparse (IfStatement condition trueBranch falseBranch) depth acc = acc ++ (indent depth) ++ (mapToken TokenIf) ++ (mapToken TokenOpenParen) ++ (unparse condition depth acc) ++ (mapToken TokenCloseParen) ++ (unparse trueBranch depth acc) ++ (indent depth) ++ (mapToken TokenElse) ++ (unparse falseBranch depth acc)
     unparse (FunctionCallStatement fn) depth acc = acc ++ (indent depth) ++ (unparse fn depth acc) ++ (mapToken TokenSemi) ++ "\n"
 
+-- unroll all the various kinds of expressions
 instance UnparseShow Expression where
+    unparse (FunctionCallExpression ident params) depth acc = (indent depth) ++ ident ++ (mapToken TokenOpenParen) ++ (unparse params depth acc) ++ (mapToken TokenCloseParen)
+    unparse (AddExpression expression term) depth acc = (unparse expression depth acc) ++ (mapToken TokenAdd) ++ (unparse term depth acc)
+    unparse (MinusExpression expression term) depth acc = (unparse expression depth acc) ++ (mapToken TokenMinus) ++ (unparse term depth acc)
+    unparse (LtExpression expression term) depth acc = (unparse expression depth acc) ++ (mapToken TokenLt) ++ (unparse term depth acc)
+    unparse (GtExpression expression term) depth acc = (unparse expression depth acc) ++ (mapToken TokenGt) ++ (unparse term depth acc)
+    unparse (EqualsExpression expression term) depth acc = (unparse expression depth acc) ++ (mapToken TokenEquals) ++ (unparse term depth acc)
+
+
+    unparse (Term f) depth acc = (unparse f depth acc)
     unparse expression depth acc = (show expression)
+
+
+instance UnparseShow Term where
+    unparse (Factor f) depth acc = (unparse f depth acc)
+    unparse (MultiplyTerm t f) depth acc  = (unparse t depth acc) ++ (mapToken TokenMultiply) ++ (unparse f depth acc)
+    unparse (DivideTerm t f) depth acc  = (unparse t depth acc) ++ (mapToken TokenDivide) ++ (unparse f depth acc)
+
+
+instance UnparseShow Factor where
+    unparse (FactorParenExpression e) depth acc = (mapToken TokenOpenParen) ++ (unparse e depth acc) ++ (mapToken TokenCloseParen)
+    unparse (FactorIntegerLiteralExpression i) depth acc = show i
+    unparse (FactorBooleanLiteralExpression b) depth acc = show b
+    unparse (FactorStringLiteralExpression s) depth acc = show s
+    unparse (IdentExpression i) depth acc = i
+
+

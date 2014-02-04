@@ -15,7 +15,7 @@ while(x=3){
 
 if(a=b){
 	Int a;
-	if(a=b){
+	if(a=(b*b)){
 		Int q;
         }
 }
