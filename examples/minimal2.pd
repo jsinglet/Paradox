@@ -1,0 +1,11 @@
+fn Int myFunction(Int a, Int b) implicitly [Int a] {
+   return 0;
+}
+
+fn Int myFunction(Int a, Int b)  implicitly [] {
+   return 0;
+}
+
+fn Int myFunction()  {
+   return 0;
+}

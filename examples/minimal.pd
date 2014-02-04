@@ -1,0 +1,22 @@
+
+
+Int x;
+Int y;
+
+x := 3;
+
+while(x=3){
+	Int z;
+	while(x=4){
+		Int q;
+	}
+}
+
+
+if(a=b){
+	Int a;
+	if(a=b){
+		Int q;
+        }
+}
+

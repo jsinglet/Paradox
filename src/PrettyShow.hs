@@ -1,4 +1,4 @@
-module PrettyShow where
+module PrettyShow (prettyParse) where
 
 import Parser
 import Data.List

@@ -7,21 +7,11 @@ import QQ
 import Parser
 import Scanner
 import PrettyShow
- 
+import UnparseShow
+
 -- Eval this to use flymake in Emacs so it picks up the Parser and Scanner
 -- (setq ghc-ghc-options '("-i:../dist/build/paradox/paradox-tmp/"))
 
-
- 
-doAst :: String -> IO ()
-doAst f = do 
-  file <- readFile f
-  let parseTree = parse (alexScanTokens file)  
-  putStrLn ("Raw AST: \n\n" ++ (show parseTree))
-  putStrLn ("\nPretty AST: \n\n" ++ prettyPrintAst (parseTree))
-
-doUnparse :: String -> IO ()
-doUnparse f = doAst f
 
 main :: IO ()
 main = do  
@@ -34,6 +24,14 @@ main = do
            Nothing -> invalidUsage
       []     -> invalidUsage
          
+
+helpMessage :: String
+helpMessage = [qq|Usage: paradox [-unparse | -ast] FILE
+-unparse:	Display the UNPARSE of a program in FILE.
+-ast:		Display the AST of program contained in FILE.
+|]
+
+
 dispatch :: [(String, (String -> IO ()))]  
 dispatch =  [ ("-ast", doAst)  
             , ("-unparse", doUnparse)  
@@ -48,13 +46,16 @@ invalidUsage = do
 help :: IO ()
 help = putStrLn helpMessage
 
+doAst :: String -> IO ()
+doAst f = do 
+  file <- readFile f
+  let parseTree = parse (alexScanTokens file)  
+  putStrLn ("Raw AST: \n\n" ++ (show parseTree))
+  putStrLn ("\nPretty AST: \n\n" ++ (prettyParse parseTree 0 ""))
 
-helpMessage :: String
-helpMessage = [qq|Usage: paradox [-unparse | -ast] FILE
--unparse:	Display the UNPARSE of a program in FILE.
--ast:		Display the AST of program contained in FILE.
-|]
-
-
-prettyPrintAst :: Program -> String
-prettyPrintAst program = prettyParse program 0 ""
+doUnparse :: String -> IO ()
+doUnparse f = do 
+  file <- readFile f
+  let parseTree = parse (alexScanTokens file)  
+  putStrLn ("Raw AST: \n\n" ++ (show parseTree))
+  putStrLn ("\nUnparsed Program: [Note that Sugars are removed and replaced with the AST representation] \n\n" ++ unparse parseTree 0 "")
