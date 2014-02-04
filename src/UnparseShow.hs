@@ -84,6 +84,7 @@ instance UnparseShow Statement where
     unparse (Skip) depth acc = acc ++ (indent depth) ++ (mapToken TokenSemi) ++ "\n"
     unparse (WhileStatement condition body) depth acc = acc ++ (indent depth) ++ (mapToken TokenWhile) ++ (mapToken TokenOpenParen) ++ (unparse condition depth acc) ++ (mapToken TokenCloseParen) ++ (unparse body depth acc) ++ "\n"
     unparse (IfStatement condition trueBranch falseBranch) depth acc = acc ++ (indent depth) ++ (mapToken TokenIf) ++ (mapToken TokenOpenParen) ++ (unparse condition depth acc) ++ (mapToken TokenCloseParen) ++ (unparse trueBranch depth acc) ++ (indent depth) ++ (mapToken TokenElse) ++ (unparse falseBranch depth acc)
+    unparse (FunctionCallStatement fn) depth acc = acc ++ (indent depth) ++ (unparse fn depth acc) ++ (mapToken TokenSemi) ++ "\n"
 
 instance UnparseShow Expression where
     unparse expression depth acc = (show expression)
