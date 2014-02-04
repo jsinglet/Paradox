@@ -72,7 +72,7 @@ FnType : Type { $1 }
 
 Type : "Int" {IntType}
      | "String" {StringType}
-     | "Boolean" {BooleanType}
+| "Boolean" {BooleanType}
 
 
 Expression : Factor { FactorExpression }

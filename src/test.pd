@@ -1,7 +1,7 @@
 // Simple Var Declarations
 Int a;
-Int b;
-String c;
+// Int b;
+// String c;
 
 // Assignments
 c := 2;
@@ -13,6 +13,9 @@ fn Int myFunction1(Int x, Int y)
 {
    String a;
    String b;
+
+   c := 2;
+   d := (3 + 3);
 
    return a;
 
