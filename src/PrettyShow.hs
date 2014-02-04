@@ -34,9 +34,9 @@ instance PrettyShow BlockStatement where
                                                                                                                                            , (show implicitParameters), "\n"]) 
                                                                                                                    ++ prettyParse body (depth +1) " "
 
-instance PrettyShow FunctionBody where
-    prettyShow (FunctionBody _ ) = "FunctionBody:"
-    prettyParse fb@(FunctionBody body) depth acc = (indent depth) ++ (prettyShow  fb) ++ prettyParse body depth acc
+instance PrettyShow BlockBody where
+    prettyShow (BlockBody _ ) = "BlockBody:"
+    prettyParse fb@(BlockBody body) depth acc = (indent depth) ++ (prettyShow  fb) ++ prettyParse body depth acc
 
 instance PrettyShow StatementList where
     prettyShow _ = "StatementList [\n"

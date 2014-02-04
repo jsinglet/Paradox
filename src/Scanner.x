@@ -42,6 +42,7 @@ tokens :-
        "fn"		{ \s -> TokenFn         }
        "return"		{ \s -> TokenReturn }
        "implicitly"	{ \s -> TokenImplicitly }
+       "while"		{ \s -> TokenWhile }
        "{"		{ \s -> TokenOpenBrace  }
        "}" 		{ \s -> TokenCloseBrace }
        $digit+          { \s -> TokenIntegerLiteral (read s) }
@@ -79,6 +80,7 @@ data Token
     | TokenImplicitly 
     | TokenOpenBracket
     | TokenCloseBracket 
+    | TokenWhile
       deriving (Show, Eq)
 
                

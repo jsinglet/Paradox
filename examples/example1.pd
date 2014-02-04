@@ -1,3 +1,10 @@
+//
+// example1.pd
+//
+// Minimal example containing all language features.
+
+
+
 // Simple Var Declarations
 Int a;
 // Int b;
@@ -37,13 +44,12 @@ a := myFunction2(a,b);
 
 // If statement
 
-// if( a > 3) {
+//if( a > 3) {
 //     a := 100;
 // } else{
 //     a := 0;
 // }
 
 // While loop
-// while (a > 0){
-	
-// }
+while (a){
+}

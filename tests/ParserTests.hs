@@ -31,13 +31,13 @@ testParseAssignExpr2 = testParse "d := (3 + a + (a * 2));" @?= Program (BlockLis
  "a"))) (Factor (FactorParenExpression (Term (MultiplyTerm (Factor (IdentExpression "a")) (FactorIntegerLiteralExpression 2)))))))))])])
 
 testParseFunction :: Assertion 
-testParseFunction = testParse "fn Int myFunction(){ Int x; }" @?= Program (BlockList [FunctionBlockStatement IntType "myFunction" (VarSpecList []) (ImplicitVarSpec (VarSpecList [])) (FunctionBody (StatementList [LocalVarDeclStatement (VarSpec IntType "x")]))])
+testParseFunction = testParse "fn Int myFunction(){ Int x; }" @?= Program (BlockList [FunctionBlockStatement IntType "myFunction" (VarSpecList []) (ImplicitVarSpec (VarSpecList [])) (BlockBody (StatementList [LocalVarDeclStatement (VarSpec IntType "x")]))])
 
 testParseFunctionWithParams :: Assertion
-testParseFunctionWithParams = testParse "fn Int myFunction(Int x){ Int x; }" @?= Program (BlockList [FunctionBlockStatement IntType "myFunction" (VarSpecList [VarSpec IntType "x"]) (ImplicitVarSpec (VarSpecList [])) (FunctionBody (StatementList [LocalVarDeclStatement (VarSpec IntType "x")]))])
+testParseFunctionWithParams = testParse "fn Int myFunction(Int x){ Int x; }" @?= Program (BlockList [FunctionBlockStatement IntType "myFunction" (VarSpecList [VarSpec IntType "x"]) (ImplicitVarSpec (VarSpecList [])) (BlockBody (StatementList [LocalVarDeclStatement (VarSpec IntType "x")]))])
 
 testParseFunctionWithImplicitParams :: Assertion 
-testParseFunctionWithImplicitParams = testParse "fn Int myFunction(Int x) implicitly [Int y] { Int x; }" @?= Program (BlockList [FunctionBlockStatement IntType "myFunction" (VarSpecList [VarSpec IntType "x"]) (ImplicitVarSpec (VarSpecList [VarSpec IntType "y"])) (FunctionBody (StatementList [LocalVarDeclStatement (VarSpec IntType "x")]))])
+testParseFunctionWithImplicitParams = testParse "fn Int myFunction(Int x) implicitly [Int y] { Int x; }" @?= Program (BlockList [FunctionBlockStatement IntType "myFunction" (VarSpecList [VarSpec IntType "x"]) (ImplicitVarSpec (VarSpecList [VarSpec IntType "y"])) (BlockBody (StatementList [LocalVarDeclStatement (VarSpec IntType "x")]))])
 
 
 
@@ -54,6 +54,6 @@ fn Int myFunction() {
 |]
 
 testParseMixedProgram :: Assertion
-testParseMixedProgram = testParse mixedProgram @?= Program (BlockList [BlockStatement (StatementList [LocalVarDeclStatement (VarSpec IntType "x"),LocalVarDeclStatement (VarSpec IntType "y"),AssignStatement "y" (Term (Factor (FactorIntegerLiteralExpression 3)))]),FunctionBlockStatement IntType "myFunction" (VarSpecList []) (ImplicitVarSpec (VarSpecList [])) (FunctionBody (StatementList [ReturnStatement (Term (Factor (FactorIntegerLiteralExpression 1)))]))])
+testParseMixedProgram = testParse mixedProgram @?= Program (BlockList [BlockStatement (StatementList [LocalVarDeclStatement (VarSpec IntType "x"),LocalVarDeclStatement (VarSpec IntType "y"),AssignStatement "y" (Term (Factor (FactorIntegerLiteralExpression 3)))]),FunctionBlockStatement IntType "myFunction" (VarSpecList []) (ImplicitVarSpec (VarSpecList [])) (BlockBody (StatementList [ReturnStatement (Term (Factor (FactorIntegerLiteralExpression 1)))]))])
 
 

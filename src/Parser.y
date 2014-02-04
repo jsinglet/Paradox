@@ -33,6 +33,7 @@ ident		 { TokenIdent $$      	  }
 ']'    { TokenCloseBracket }
 '['    { TokenOpenBracket }
 'fn'   { TokenFn         }
+'while' { TokenWhile }
 'implicitly' { TokenImplicitly }
 'return' { TokenReturn }
      
@@ -47,8 +48,8 @@ BlockList : BlockStatement { BlockList [$1] }
 BlockStatement : FunctionBlock { $1 }
     | StatementList { BlockStatement $1 }
       
-FunctionBlock : 'fn'  FnType ident '(' VarSpecList ')' FunctionBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $ VarSpecList []) $7  }
-    | 'fn' FnType ident '(' VarSpecList ')' 'implicitly' '[' VarSpecList ']' FunctionBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $9) $11 }
+FunctionBlock : 'fn'  FnType ident '(' VarSpecList ')' BlockBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $ VarSpecList []) $7  }
+    | 'fn' FnType ident '(' VarSpecList ')' 'implicitly' '[' VarSpecList ']' BlockBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $9) $11 }
 
 
 StatementList :  Statement { StatementList [$1] }
@@ -58,6 +59,8 @@ StatementList :  Statement { StatementList [$1] }
 Statement : VarSpec ';' { LocalVarDeclStatement $1 }
     | ident ':=' Expression ';' { AssignStatement $1 $3 }
     | 'return' Expression ';' { ReturnStatement $2 }
+    | 'while' '(' Expression ')' BlockBody { WhileStatement $3 $5 }
+    | 'while' '(' Expression ')' BlockBody { WhileStatement $3 $5 }
 
 VarSpecList : { VarSpecList [] }
     | VarSpec { VarSpecList [$1] }
@@ -70,7 +73,11 @@ ActualParametersList : { ActualParametersList [] }
     | Expression ',' ActualParametersList { combineActualParametersLists $1 $3 }
 
 
-FunctionBody : '{' StatementList '}' { FunctionBody $2 }
+
+
+BlockBody : '{' '}' { BlockBody (StatementList [Skip]) }
+    | '{' StatementList '}' { BlockBody $2 }
+   
 	
 FnType : Type { $1 }
     | "Void" {VoidType}
@@ -120,7 +127,7 @@ data Program
 
 data BlockStatement
     = BlockStatement StatementList
-    | FunctionBlockStatement Type Ident VarSpecList VarSpecList FunctionBody 
+    | FunctionBlockStatement Type Ident VarSpecList VarSpecList BlockBody 
       deriving (Show, Eq)
 
 data BlockList
@@ -146,10 +153,12 @@ data Statement
     = AssignStatement Ident Expression
     | LocalVarDeclStatement VarSpec
     | ReturnStatement Expression
+    | WhileStatement Expression BlockBody
+    | Skip
       deriving (Show, Eq)
 
-data FunctionBody
-     = FunctionBody StatementList
+data BlockBody
+     = BlockBody StatementList
       deriving (Show, Eq)
 
 data StatementList 
