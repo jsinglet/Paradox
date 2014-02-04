@@ -19,6 +19,8 @@ integer_literal  { TokenIntegerLiteral $$ }
 string_literal   { TokenStringLiteral $$  }
 ident		 { TokenIdent $$      	  }
 '='    { TokenEquals }
+'>'    { TokenGt     }
+'<'    { TokenLt     }
 ':='   { TokenAssign }
 ';'    { TokenSemi   }
 ','    { TokenSep    }
@@ -35,6 +37,8 @@ ident		 { TokenIdent $$      	  }
 'fn'   { TokenFn         }
 'while' { TokenWhile }
 'implicitly' { TokenImplicitly }
+'if' { TokenIf }
+'else' { TokenElse }
 'return' { TokenReturn }
      
 
@@ -61,6 +65,8 @@ Statement : VarSpec ';' { LocalVarDeclStatement $1 }
     | 'return' Expression ';' { ReturnStatement $2 }
     | 'while' '(' Expression ')' BlockBody { WhileStatement $3 $5 }
     | 'while' '(' Expression ')' BlockBody { WhileStatement $3 $5 }
+    | 'if'    '(' Expression ')' BlockBody { IfStatement $3 $5 (BlockBody $ StatementList [Skip]) }
+    | 'if'    '(' Expression ')' BlockBody 'else' BlockBody { IfStatement $3 $5 $7 }
 
 VarSpecList : { VarSpecList [] }
     | VarSpec { VarSpecList [$1] }
@@ -90,6 +96,8 @@ Type : "Int" {IntType}
 Expression : Factor { FactorExpression }
     | Expression '+' Term { AddExpression $1 $3 }
     | Expression '-' Term { MinusExpression  $1 $3 }
+    | Expression '>' Term { GtExpression $1 $3 }
+    | Expression '<' Term { LtExpression $1 $3 }
     | Term                { Term $1 }
     | ident '(' ActualParametersList ')' { FunctionCallExpression $1 $3 }
 
@@ -154,6 +162,7 @@ data Statement
     | LocalVarDeclStatement VarSpec
     | ReturnStatement Expression
     | WhileStatement Expression BlockBody
+    | IfStatement Expression BlockBody BlockBody
     | Skip
       deriving (Show, Eq)
 
@@ -169,6 +178,8 @@ data Expression
     = FactorExpression 
     | AddExpression Expression Term
     | MinusExpression Expression Term
+    | LtExpression Expression Term
+    | GtExpression Expression Term
     | Term Term
     | FunctionCallExpression Ident ActualParametersList
       deriving (Show, Eq)

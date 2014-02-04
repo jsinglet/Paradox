@@ -43,13 +43,12 @@ a := myFunction2(a,b);
 
 
 // If statement
-
-//if( a > 3) {
-//     a := 100;
-// } else{
-//     a := 0;
-// }
+if( a > 3) {
+     a := 100;
+} else{
+     a := 0;
+}
 
 // While loop
-while (a){
+while (a > (2 + 3)){
 }

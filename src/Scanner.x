@@ -28,6 +28,8 @@ tokens :-
        "true"		{ \s -> TokenBooleanLiteral True }
        "false"		{ \s -> TokenBooleanLiteral False }
        "="		{ \s -> TokenEquals }
+       ">"		{ \s -> TokenGt     }
+       "<"		{ \s -> TokenLt	    }
        ":="		{ \s -> TokenAssign }
        ","		{ \s -> TokenSep    }
        ";"		{ \s -> TokenSemi   }
@@ -43,6 +45,8 @@ tokens :-
        "return"		{ \s -> TokenReturn }
        "implicitly"	{ \s -> TokenImplicitly }
        "while"		{ \s -> TokenWhile }
+       "if"		{ \s -> TokenIf    }
+       "else"		{ \s -> TokenElse  }
        "{"		{ \s -> TokenOpenBrace  }
        "}" 		{ \s -> TokenCloseBrace }
        $digit+          { \s -> TokenIntegerLiteral (read s) }
@@ -63,6 +67,8 @@ data Token
     | TokenIntegerLiteral Int
     | TokenStringLiteral String
     | TokenEquals
+    | TokenLt
+    | TokenGt
     | TokenAssign
     | TokenSemi
     | TokenAdd
@@ -78,6 +84,8 @@ data Token
     | TokenSep  
     | TokenReturn
     | TokenImplicitly 
+    | TokenIf
+    | TokenElse
     | TokenOpenBracket
     | TokenCloseBracket 
     | TokenWhile
