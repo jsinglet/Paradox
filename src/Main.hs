@@ -2,13 +2,14 @@
 
 module Main where
 
-import System.Environment 
+import System.Environment  
 import QQ
 import Parser
 import Scanner
 import PrettyShow
 import UnparseShow
-
+import TypeCheck
+import Walker 
 -- Eval this to use flymake in Emacs so it picks up the Parser and Scanner
 -- (setq ghc-ghc-options '("-i:../dist/build/paradox/paradox-tmp/"))
 
@@ -34,7 +35,8 @@ helpMessage = [qq|Usage: paradox [-unparse | -ast] FILE
 
 dispatch :: [(String, (String -> IO ()))]  
 dispatch =  [ ("-ast", doAst)  
-            , ("-unparse", doUnparse)  
+            , ("-unparse", doUnparse)
+            , ("-check", doTypeCheck)
             ]  
 
 invalidUsage :: IO ()
@@ -52,6 +54,19 @@ doAst f = do
   let parseTree = parse (alexScanTokens file)  
   putStrLn ("Raw AST: \n\n" ++ (show parseTree))
   putStrLn ("\nPretty AST: \n\n" ++ (prettyParse parseTree 0 ""))
+
+doTypeCheck :: String -> IO ()
+doTypeCheck f = do 
+  file <- readFile f
+  let parseTree = parse (alexScanTokens file)  
+  putStrLn ("Raw AST: \n\n" ++ (show parseTree) ++ "\n\n")
+  let parseResult = typeCheckAST parseTree
+  case (lastError parseResult) of
+    Just a -> error a
+    Nothing -> do 
+      putStrLn (show (length $ (internalParserState parseResult)) ++ " idents on final stack.")
+      putStrLn ("OK")
+
 
 doUnparse :: String -> IO ()
 doUnparse f = do 
