@@ -1,10 +1,18 @@
+String n;
+String a;
 
-Int a;
+fn Int fact(Int n) implicitly [String a] {
 
-Int T;
+   if (n=0){
+      return n;
+   }
 
-a := T;
+   return n;
+}
 
-a := 3+3+3+3;
 
+
+String factOf10;
+
+factOf10 := fact(10);
 

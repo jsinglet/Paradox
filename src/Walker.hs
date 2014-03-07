@@ -19,7 +19,8 @@ data ASTNode =
         | BlockStatementNode BlockStatement
         | StatementListNode StatementList
         | StatementNode Statement
-        | BlockBodyNode BlockBody
+        | EnterBlockBodyNode BlockBody
+        | ExitBlockBodyNode BlockBody
         | ExpressionNode Expression
         | TermNode Term
         | FactorNode Factor
@@ -39,6 +40,11 @@ instance Walker BlockList where
 
 instance Walker BlockStatement where
     walk (BlockStatement bs) ps f = walk bs ps f
+    walk n@(FunctionBlockStatement varType ident formalParams implicitParams body) ps f = walk body (f ps (BlockStatementNode n)) f
+
+
+-- FunctionBlockStatement Type Ident VarSpecList VarSpecList BlockBody 
+
     
 
 instance Walker StatementList where
@@ -51,17 +57,15 @@ instance Walker Statement where
     walk n@(Skip) ps f = (f ps (StatementNode n))
     walk n@(WhileStatement condition body) ps f = walk body (walk condition (f ps (StatementNode n)) f) f
     walk n@(FunctionCallStatement fn) ps f = (f ps (StatementNode n))
-
---  TODO: Need to be able to do unions.
---    walk n@(IfStatement condition trueBranch falseBranch
+    walk n@(IfStatement condition trueBranch falseBranch) ps f = walk falseBranch (walk trueBranch (walk condition (f ps (StatementNode n)) f) f) f
 
 instance Walker BlockBody where
-    walk (BlockBody body) ps f = walk body ps f
+    walk n@(BlockBody body) ps f = f (walk body (f ps (EnterBlockBodyNode n)) f) (ExitBlockBodyNode n)
 
 instance Walker Expression where
     -- Todo, need to do arg list
 
-    walk n@(FunctionCallExpression ident params) ps f = ps
+    walk n@(FunctionCallExpression ident params) ps f = f ps (ExpressionNode n)
     -- for each of these, the union is implemented by calling the f function on a ps that has been first
     -- created for the left then the right then to the node itself. This will be the most flexible pattern. 
     walk n@(AddExpression expression term) ps f = f (walk expression (walk term ps f) f) (ExpressionNode n) 
