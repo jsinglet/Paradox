@@ -19,7 +19,7 @@ executable paradox
   hs-source-dirs:      src	
   build-tools:         happy, alex
   other-modules:       Parser, Scanner, QQ
-  build-depends:       base >= 4, array, template-haskell
+  build-depends:       base >= 4, array, template-haskell, monads-tf
 
 test-suite paradox-tests
   main-is:		Main.hs

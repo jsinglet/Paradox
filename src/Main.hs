@@ -61,11 +61,8 @@ doTypeCheck f = do
   let parseTree = parse (alexScanTokens file)  
   putStrLn ("Raw AST: \n\n" ++ (show parseTree) ++ "\n\n")
   let parseResult = typeCheckAST parseTree
-  case (lastError parseResult) of
-    Just a -> error a
-    Nothing -> do 
-      putStrLn (show (length $ (internalParserState parseResult)) ++ " idents on final stack.")
-      putStrLn ("OK")
+  putStrLn (show (length $ (internalParserState parseResult)) ++ " idents on final stack.")
+  putStrLn ("OK")
 
 
 doUnparse :: String -> IO ()

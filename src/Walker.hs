@@ -6,11 +6,11 @@ import Data.List
 import UnparseShow
 import Debug.Trace
 
--- this should be a monad eventually.
+-- -- this should be a monad eventually.
 data ParserState a = ParserState {
       internalParserState :: a
-    , lastError :: Maybe String
     } deriving (Show)
+
 
 
 data ASTNode = 
@@ -27,7 +27,7 @@ data ASTNode =
 
 
 -- generic tree walking function
-class Walker a where
+class Walker a where 
     walk :: (UnparseShow a) => a -> ParserState b -> (ParserState b -> ASTNode ->  ParserState b) -> ParserState b
 
 instance Walker Program where

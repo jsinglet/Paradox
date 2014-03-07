@@ -1,9 +1,10 @@
 
 Int a;
-String T;
+
+Int T;
 
 a := T;
 
-
+a := 3+3+3+3;
 
 

@@ -4,96 +4,147 @@ import Parser
 import Data.List
 import Walker
 import Debug.Trace
-import UnparseShow
+import UnparseShow 
+
 
 -- To hold things we know about the surrounding enviorns.
 -- Since we want to check implicit types we hang on to a little more information
 -- about the various types of identifiers, especially the implicit method spec.
 data EnvEntry = EnvEntry {
-      identName :: String
+      identName :: String 
     , identType :: Type
     , methodSpec :: Maybe VarSpecList
     , implicitSpec :: Maybe VarSpecList
     , level :: Int
     } deriving (Show)
 
--- A stack of environments. To make it easier to find identifiers, we index by
--- the Ident field. 
-type Env = [(Ident,EnvEntry)]
+--
+-- Encapsulate the state of the parser into a state Monad.
+--
+newtype TCParserState s a = TCParserState { runState :: s -> (a,s) }
 
--- get a new environment
+instance Monad (TCParserState s) where  
+    return x = TCParserState $ \s -> (x,s)  
+    (TCParserState h) >>= f = TCParserState $ \s -> let (a, newState) = h s  
+                                                        (TCParserState g) = f a  
+                                                in  g newState  
+
+type Env = [EnvEntry]
+
 newEnv :: Env
-newEnv = []
+newEnv = [EnvEntry "________basePointer" VoidType Nothing Nothing 0]
 
--- push an ident into the environment
-push :: Env -> EnvEntry -> Env
-push env e =  (identName e, e) : env
+--
+-- TCParserState manipulation and query functions
+--
+initParserState :: ParserState Env
+initParserState = ParserState newEnv 
 
--- get the last ident off of the environment
-pop :: Env -> (EnvEntry, Env)
-pop env = (snd $ head env, tail env)
-
--- attempt to find an ident in a given environment
-getIdent :: Ident -> Env -> Maybe EnvEntry
-getIdent ident env = lookup ident env
-
-getIdentAtLevel :: Ident -> Int -> Env -> Maybe EnvEntry
-getIdentAtLevel ident l env = foldl (\acc (i,entry) -> if i==ident && (level entry)==l then (Just entry) else acc) Nothing env
+pop :: TCParserState Env EnvEntry
+pop = TCParserState $ \(x:xs) -> (x,xs)  
+  
+push :: EnvEntry -> TCParserState Env ()  
+push entry = TCParserState $ \xs -> ((),entry:xs)  
 
 
-checkLastTwoTypesMatch :: Env -> Expression -> Env
-checkLastTwoTypesMatch env expr = let (lhs, e1) = pop env in let (rhs, e2) = pop e1 in case (identType lhs)==(identType rhs) of 
-                                                                                   True -> e1
-                                                                                   False -> error ("Type Error, Mismatched Types in Expression: " ++ unparse expr 0 "")
+get :: TCParserState Env ()  
+get = TCParserState $ \xs -> ((),xs)  
 
-currLevel :: Env -> Int
-currLevel [] = 0
-currLevel (h:_) = level (snd h) 
+currLevel :: TCParserState Env Int
+currLevel =  do 
+  top <- pop
+  push top
+  return (level top)
 
---  
+
+storeIdent :: Ident -> Type -> TCParserState Env ()
+storeIdent ident varType = do 
+  cl <- currLevel
+  push (EnvEntry ident varType Nothing Nothing cl) 
+
+ 
+getIdent :: Ident -> TCParserState Env (Maybe EnvEntry)
+getIdent ident = TCParserState $ \xs -> (foldr (\x acc -> if (identName x == ident) then Just x else acc) Nothing xs, xs)
+
+getIdentAtLevel :: Ident -> Int -> TCParserState Env (Maybe EnvEntry)
+getIdentAtLevel ident l = TCParserState $ \xs -> (foldr (\x acc -> if (identName x == ident && level x == l) then Just x else acc) Nothing xs, xs)
+
+
+
+--
+-- AST Checking Functions  
+--
+checkLastTwoTypesMatch :: Expression -> TCParserState Env ()
+checkLastTwoTypesMatch expr = do 
+  lhs <- pop
+  rhs <- pop
+  push rhs
+  case (identType lhs) == (identType rhs) of
+    True -> return ()
+    False -> error ("Type Error, Mismatched Types in Expression: " ++ unparse expr 0 "" ++ " [checkLastTwoTypesMatch]")
+
+checkAlreadyDefined :: Ident -> Statement-> TCParserState Env ()
+checkAlreadyDefined ident node = do 
+  cl <- currLevel
+  found <- getIdentAtLevel ident cl
+  case found of 
+    (Just _) -> error ("Variable already defined: " ++ unparse node 0 ""  ++ " [checkAlreadyDefined]")
+    Nothing  -> return ()
+
+checkAssignmentTypes :: Ident -> Statement-> TCParserState Env ()
+checkAssignmentTypes ident expr = do 
+  jlhs <- getIdent ident
+  case (jlhs) of 
+    (Just lhs) -> do 
+               rhs <- pop
+               case (identType rhs)==(identType lhs) of
+                 True -> return ()
+                 False -> error ("Mismatched types in assignment: " ++ unparse expr 0 "" ++ "[checkAssignmentTypes]")
+    Nothing    -> error ("Undeclared identifier: " ++ (show ident) ++ " [checkAssignmentTypes]")
+
+checkResolveIdentType :: Ident -> TCParserState Env Type
+checkResolveIdentType ident = do 
+  jident <- getIdent ident
+  case (jident) of 
+    (Just i) -> return (identType i)
+    Nothing    -> error ("Undeclared identifier: " ++ (show ident) ++ " [checkResolveIdentType]")
+  
+
+--
+-- Main hook
+--
 typeCheckAST :: Program -> ParserState Env
-typeCheckAST p = walk p (ParserState newEnv Nothing) implicitTypeChecker
+typeCheckAST p = walk p (ParserState newEnv) implicitTypeChecker
+
+
+
+--
+-- Entrypoints for the walker to call into as we reach various nodes.
+--
 
 implicitTypeChecker :: ParserState Env -> ASTNode -> ParserState Env
 
 -- local var decl statements enter new definitions. 
-implicitTypeChecker (ParserState env lm) (StatementNode node@(LocalVarDeclStatement (VarSpec varType ident))) 
-    | (alreadyDefined==False) = (ParserState (push env (EnvEntry ident varType Nothing Nothing cl)) lm) 
-    | otherwise = error ("Variable already defined: " ++ unparse node 0 "" )
-    where alreadyDefined = case (getIdentAtLevel ident cl env) of 
-                             Nothing -> False 
-                             _ -> True  
-          cl = currLevel env
+implicitTypeChecker (ParserState env) (StatementNode node@(LocalVarDeclStatement (VarSpec varType ident))) = 
+    trace ("\n\nEntering Var Definition: " ++ (show ident) ++ " current env: " ++ (show env) ++ "\n\n") $ ParserState $ let (_,s) =  runState (checkAlreadyDefined ident node >> storeIdent ident varType) env in trace ("new env: " ++ (show s) ++ "\n\n") $ s 
 
 -- check that the lhs type equals the rhs type
-implicitTypeChecker (ParserState env lm) (StatementNode node@(AssignStatement ident expression)) = let lhs = resolveLHS in let (rhs,e2) = pop env in 
-                                                                                                                                   case (identType lhs)==(identType rhs) of
-                                                                                                                                     True -> ParserState e2 lm
-                                                                                                                                     False -> error ("Mismatched types in assignment: " ++ unparse node 0 "")
-                                                                                                           where
-                                                                                                             resolveLHS = let i = getIdent ident env in 
-                                                                                                                          case (i) of
-                                                                                                                            Just n -> n
-                                                                                                                            _      -> error ("Undeclared identifier: " ++ (show i))
+implicitTypeChecker (ParserState env) (StatementNode node@(AssignStatement ident expression)) =     
+    ParserState $ let (_,s) = runState (checkAssignmentTypes ident node) env in s 
+
+implicitTypeChecker (ParserState env) (FactorNode (FactorIntegerLiteralExpression i )) = 
+    trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" IntType) env in s 
 
 
-implicitTypeChecker (ParserState env lm) (FactorNode (FactorIntegerLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState (push env (EnvEntry "_infType" IntType Nothing Nothing (currLevel env))) lm
-
-implicitTypeChecker (ParserState env lm) (FactorNode (FactorBooleanLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState (push env (EnvEntry "_infType" BooleanType Nothing Nothing (currLevel env))) lm
+implicitTypeChecker (ParserState env) (FactorNode (FactorBooleanLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" BooleanType) env in s 
 
 
-implicitTypeChecker (ParserState env lm) (FactorNode (FactorStringLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState (push env (EnvEntry "_infType" StringType Nothing Nothing (currLevel env))) lm
+implicitTypeChecker (ParserState env) (FactorNode (FactorStringLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" StringType) env in s
 
-
-implicitTypeChecker (ParserState env lm) (FactorNode (IdentExpression i )) = trace ("Pushing ident " ++ (show i) ++ " with type: " ++ (show iType)) $ ParserState (push env (EnvEntry "_infType" iType Nothing Nothing (currLevel env))) lm
-                                                                             where
-                                                                               iType = let ident = getIdent i env in 
-                                                                                       case (ident) of
-                                                                                         Nothing -> error ("Undeclared identifier: " ++ (show i))
-                                                                                         Just theIdent       -> identType theIdent
+implicitTypeChecker (ParserState env) (FactorNode (IdentExpression i )) = trace ("Pushing ident " ++ (show i) ++ " with type: ") $ ParserState $ let (_,s) = runState (checkResolveIdentType i >>= storeIdent "_infType") env in s
 
  
-implicitTypeChecker (ParserState env lm) (ExpressionNode n) = trace ("Checking Expression: " ++ unparse n 0 "") ParserState (checkLastTwoTypesMatch env n) lm
+implicitTypeChecker (ParserState env) (ExpressionNode n) = trace ("Checking Expression: " ++ unparse n 0 "") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n) env in s
 
 -- check that this var isn't already defined 
 -- default case, do nothing
