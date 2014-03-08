@@ -3,7 +3,7 @@ module TypeCheck where
 import Parser
 import Data.List
 import Walker
-import Debug.Trace
+import qualified Debug.Trace as D
 import UnparseShow 
 
 
@@ -25,6 +25,15 @@ instance Show EnvEntry where
 
 showStack :: Env -> String
 showStack e = concatMap (\x -> (show x) ++ "\n-----------------------------------------------\n") e
+
+
+trace :: String -> a -> a
+-- quiet version 
+-- trace _ a = a
+-- loud version 
+trace s a = D.trace s a 
+
+
 
 --
 -- Encapsulate the state of the parser into a state Monad.
@@ -89,19 +98,33 @@ storeFunctionIdent ident varType (VarSpecList formalParams) (ImplicitVarSpec (Va
 
   return ()
 
-reduceLexicalLevel :: TCParserState Env Int
-reduceLexicalLevel = do
+clearReduceLexicalLevel :: TCParserState Env ()
+clearReduceLexicalLevel = do 
+  e <- pop
+  if (identName e)=="________lexicalReduction" then return () else push e
+
+reduceLexicalLevel :: VarSpecList -> VarSpecList -> TCParserState Env Int
+reduceLexicalLevel (VarSpecList formalParams) (ImplicitVarSpec (VarSpecList implicitParams)) = do
   cl <- currLevel
-  push (EnvEntry "________lexicalReduction" VoidType Nothing Nothing (cl-1))
-  return (cl-1)
+  case ((length formalParams) + (length implicitParams) > 0) of
+    True -> do
+        push (EnvEntry "________lexicalReduction" VoidType Nothing Nothing (cl-1))
+        return (cl-1)
+    False -> 
+        return (cl)
 
 clearLevel :: Int -> TCParserState Env ()
 clearLevel l = TCParserState $ \xs -> ((), filter (\e -> level e /= l) xs)
 
+clearInf :: TCParserState Env ()
+clearInf = TCParserState $ \xs -> ((), filter (\e -> identName e /= "_infType") xs)
 
 enterBlock :: TCParserState Env ()
 enterBlock = do 
   cl <- currLevel
+  -- first get rid of any inf at the current level
+  clearInf
+  -- mark this block
   push (EnvEntry  "________blockEnter" VoidType Nothing Nothing (cl+1))
 
 exitBlock :: TCParserState Env ()
@@ -198,7 +221,7 @@ checkActualParams ident node = do
   let (Just (VarSpecList spec)) = methodSpec fn
   -- the intersection of their type signatures should be equal
   let lhs = map (identType) actualParams 
-  let rhs = map (\(VarSpec t i) -> t) (spec)
+  let rhs = map (\(VarSpec t _) -> t) (spec)
   case (lhs == rhs) of
     True -> return ()
     False -> trace ("lhs: " ++ (show lhs) ++ " rhs: " ++ (show rhs) ) error ("Actual Parameters do not match function formal parameters: " ++ unparse node 0 ""  ++ " [checkActualParams]") 
@@ -285,10 +308,10 @@ implicitTypeChecker (ParserState env) (ExitBlockBodyNode n) =
     trace ("Exiting block ") $ ParserState $ let (_,s) = runState (exitBlock) env in s 
 
 implicitTypeChecker (ParserState env) (EnterFunctionBlockStatementNode node@(FunctionBlockStatement varType ident formalParams implicitParams body)) = 
-    trace ("\n\nEntering Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  ParserState $ let (_,s) =  runState (checkFunctionAlreadyDefined ident node >> checkFunctionParameters formalParams implicitParams >>  storeFunctionIdent ident varType formalParams implicitParams >> reduceLexicalLevel) env in s 
+    trace ("\n\nEntering Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  ParserState $ let (_,s) =  runState (checkFunctionAlreadyDefined ident node >> checkFunctionParameters formalParams implicitParams >>  storeFunctionIdent ident varType formalParams implicitParams >> reduceLexicalLevel formalParams implicitParams) env in s 
 
 implicitTypeChecker (ParserState env) (ExitFunctionBlockStatementNode node@(FunctionBlockStatement varType ident formalParams implicitParams body)) = 
-    trace ("\nExiting Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  ParserState $ let (_,s) =  runState (pop) env in s 
+    trace ("\nExiting Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  ParserState $ let (_,s) =  runState (clearReduceLexicalLevel) env in s 
 
 
 

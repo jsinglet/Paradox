@@ -1,18 +1,26 @@
-String n;
-String a;
+Int n;
+String z;
 
-fn Int fact(Int n, Int b) implicitly [String a] {
+fn Int foo() {
+   return "test";
+}
+
+fn Int fact(Int n) implicitly [String z] {
+
+   n := n+3+2;
 
    if (n=0){
       return n;
    }
 
-   return n;
+
+  return foo(1);
 }
 
 
 
 Int factOf10;
 
-factOf10 := fact((1+1)+2+3+2, 2);
+factOf10 := fact((1+n)+2+3+2);
+
 
