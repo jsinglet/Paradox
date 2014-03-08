@@ -21,9 +21,10 @@ To run all the tests:
 To run Paradox, you can do a "cabal install," and run it from your PATH or by referencing it from the current directory. There are plenty of examples in the examples/ directory.
 
 ```shell
-Usage: paradox [-unparse | -ast] FILE
+Usage: paradox [ -unparse | -ast | -check ] FILE
 -unparse:       Display the UNPARSE of a program in FILE.
 -ast:           Display the AST of program contained in FILE.
+-check:         TYPE CHECK the program contained in FILE.
 
 # dist/build/paradox/paradox -unparse examples/example1.pd
 ```

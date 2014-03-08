@@ -27,9 +27,10 @@ main = do
          
 
 helpMessage :: String
-helpMessage = [qq|Usage: paradox [-unparse | -ast] FILE
+helpMessage = [qq|Usage: paradox [ -unparse | -ast | -check ] FILE
 -unparse:	Display the UNPARSE of a program in FILE.
 -ast:		Display the AST of program contained in FILE.
+-check:		Type check the program contained in FILE.
 |]
 
 
