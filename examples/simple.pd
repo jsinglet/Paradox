@@ -1,11 +1,15 @@
 Int n;
 String z;
 
-fn Int foo() {
-   return "test";
+
+fn Int foo() implicitly [String w] {
+   return 1;
 }
 
 fn Int fact(Int n) implicitly [String z] {
+
+
+   String w;
 
    n := n+3+2;
 
@@ -14,7 +18,7 @@ fn Int fact(Int n) implicitly [String z] {
    }
 
 
-  return foo(1);
+  return foo();
 }
 
 
