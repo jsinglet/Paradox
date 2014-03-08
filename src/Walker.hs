@@ -21,6 +21,8 @@ data ASTNode =
         | StatementNode Statement
         | EnterBlockBodyNode BlockBody
         | ExitBlockBodyNode BlockBody
+        | EnterFunctionBlockStatementNode BlockStatement
+        | ExitFunctionBlockStatementNode BlockStatement
         | ExpressionNode Expression
         | TermNode Term
         | FactorNode Factor
@@ -40,7 +42,7 @@ instance Walker BlockList where
 
 instance Walker BlockStatement where
     walk (BlockStatement bs) ps f = walk bs ps f
-    walk n@(FunctionBlockStatement varType ident formalParams implicitParams body) ps f = walk body (f ps (BlockStatementNode n)) f
+    walk n@(FunctionBlockStatement varType ident formalParams implicitParams body) ps f = f (walk body (f ps (EnterFunctionBlockStatementNode n)) f) (ExitFunctionBlockStatementNode n)
 
 
 -- FunctionBlockStatement Type Ident VarSpecList VarSpecList BlockBody 
@@ -65,9 +67,12 @@ instance Walker BlockBody where
 instance Walker Expression where
     -- Todo, need to do arg list
 
-    walk n@(FunctionCallExpression ident params) ps f = f ps (ExpressionNode n)
+    walk n@(FunctionCallExpression ident (ActualParametersList exprs)) ps f = f (foldl(\acc a -> walk a acc f) ps exprs) (ExpressionNode n)
     -- for each of these, the union is implemented by calling the f function on a ps that has been first
     -- created for the left then the right then to the node itself. This will be the most flexible pattern. 
+
+    -- to check these functions, first check the argument, then check each function against a statically 
+    -- result type that should have been the result of inference. 
     walk n@(AddExpression expression term) ps f = f (walk expression (walk term ps f) f) (ExpressionNode n) 
     walk n@(MinusExpression expression term) ps f = f (walk expression (walk term ps f) f) (ExpressionNode n)
     walk n@(LtExpression expression term) ps f = f (walk expression (walk term ps f) f) (ExpressionNode n)

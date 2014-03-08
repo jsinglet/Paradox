@@ -1,7 +1,7 @@
 String n;
 String a;
 
-fn Int fact(Int n) implicitly [String a] {
+fn Int fact(Int n, Int b) implicitly [String a] {
 
    if (n=0){
       return n;
@@ -12,7 +12,7 @@ fn Int fact(Int n) implicitly [String a] {
 
 
 
-String factOf10;
+Int factOf10;
 
-factOf10 := fact(10);
+factOf10 := fact((1+1)+2+3+2, 2);
 

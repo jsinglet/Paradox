@@ -16,7 +16,15 @@ data EnvEntry = EnvEntry {
     , methodSpec :: Maybe VarSpecList
     , implicitSpec :: Maybe VarSpecList
     , level :: Int
-    } deriving (Show)
+    } 
+
+type Env = [EnvEntry]
+
+instance Show EnvEntry where
+    show a = let l = (identName a, identType a, level a) in (show l)
+
+showStack :: Env -> String
+showStack e = concatMap (\x -> (show x) ++ "\n-----------------------------------------------\n") e
 
 --
 -- Encapsulate the state of the parser into a state Monad.
@@ -29,8 +37,6 @@ instance Monad (TCParserState s) where
                                                         (TCParserState g) = f a  
                                                 in  g newState  
 
-type Env = [EnvEntry]
-
 newEnv :: Env
 newEnv = [EnvEntry "________basePointer" VoidType Nothing Nothing 0]
 
@@ -42,10 +48,16 @@ initParserState = ParserState newEnv
 
 pop :: TCParserState Env EnvEntry
 pop = TCParserState $ \(x:xs) -> (x,xs)  
+
+peek :: TCParserState Env EnvEntry
+peek = TCParserState $ \s@(x:_) -> (x,s)  
   
+
 push :: EnvEntry -> TCParserState Env ()  
 push entry = TCParserState $ \xs -> ((),entry:xs)  
 
+popActualParams :: TCParserState Env Env
+popActualParams = TCParserState $ \xs ->  let top = takeWhile (\e -> identName e == "_infType") xs in (reverse top, drop (length top) xs)
 
 get :: TCParserState Env ()  
 get = TCParserState $ \xs -> ((),xs)  
@@ -77,6 +89,11 @@ storeFunctionIdent ident varType (VarSpecList formalParams) (ImplicitVarSpec (Va
 
   return ()
 
+reduceLexicalLevel :: TCParserState Env Int
+reduceLexicalLevel = do
+  cl <- currLevel
+  push (EnvEntry "________lexicalReduction" VoidType Nothing Nothing (cl-1))
+  return (cl-1)
 
 clearLevel :: Int -> TCParserState Env ()
 clearLevel l = TCParserState $ \xs -> ((), filter (\e -> level e /= l) xs)
@@ -156,6 +173,37 @@ checkIdentIsFunction ident node = do
                    (Just _) -> return ()
                    Nothing  -> error ("Identifier does not appear to be a function: " ++ unparse node 0 "" ++ " [checkIdentIsFunction]")
     Nothing -> error ("Identifier not defined: " ++ unparse node 0 ""  ++ " [checkIdentIsFunction]")
+ 
+checkImplicitParams :: Ident -> Expression -> TCParserState Env ()
+checkImplicitParams ident node = do 
+  (Just fn) <- getIdent ident
+  let (Just (VarSpecList spec)) = implicitSpec fn
+  -- For each member of the implicit spec, ensure the following:
+  -- 1) That it is defined in the current env
+  -- 2) That the types match
+  mapM (\(VarSpec t i) -> do 
+          implicitParam <- getIdent i
+          case (implicitParam) of 
+            (Just i') -> if t==(identType i') then return () else  error ("Implicit parameter types do not match in function call: " ++ (unparse node 0 "") ++ " for variable: "++ (show i) ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType i')  ++ " [checkImplicitParams]")
+            Nothing   -> error ("Implicit parameter not defined in function call: " ++ (unparse node 0 "") ++ " for parameter: " ++ (show i)  ++ " [checkImplicitParams]")
+       ) spec
+  return ()
+  
+
+
+checkActualParams :: Ident -> Expression -> TCParserState Env ()
+checkActualParams ident node = do 
+  (Just fn) <- getIdent ident
+  actualParams <- popActualParams
+  let (Just (VarSpecList spec)) = methodSpec fn
+  -- the intersection of their type signatures should be equal
+  let lhs = map (identType) actualParams 
+  let rhs = map (\(VarSpec t i) -> t) (spec)
+  case (lhs == rhs) of
+    True -> return ()
+    False -> trace ("lhs: " ++ (show lhs) ++ " rhs: " ++ (show rhs) ) error ("Actual Parameters do not match function formal parameters: " ++ unparse node 0 ""  ++ " [checkActualParams]") 
+  
+  
 
 --
 -- TODO check that function conforms to spec.
@@ -202,33 +250,33 @@ implicitTypeChecker :: ParserState Env -> ASTNode -> ParserState Env
 
 -- local var decl statements enter new definitions. 
 implicitTypeChecker (ParserState env) (StatementNode node@(LocalVarDeclStatement (VarSpec varType ident))) = 
-    trace ("\n\nEntering Var Definition: " ++ (show ident) ++ " current env: " ++ (show env) ++ "\n\n") $ ParserState $ let (_,s) =  runState (checkAlreadyDefined ident node >> storeIdent ident varType) env in trace ("new env: " ++ (show s) ++ "\n\n") $ s 
+    trace ("\n\nEntering Var Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n") $ ParserState $ let (_,s) =  runState (checkAlreadyDefined ident node >> storeIdent ident varType) env in trace ("New Env:\n" ++ (showStack s) ++ "\n\n") $ s 
 
 implicitTypeChecker (ParserState env) (StatementNode node@(ReturnStatement stmt)) = 
-    trace ("Checking Return Type: ") $ ParserState $ let (_,s) =  runState (checkFunctionSignatureMatchesReturn stmt) env in s 
+    trace ("Checking Return Type. Current Env:\n" ++ (showStack env)) $ ParserState $ let (_,s) =  runState (checkFunctionSignatureMatchesReturn stmt) env in s 
 
 
 -- check that the lhs type equals the rhs type
 implicitTypeChecker (ParserState env) (StatementNode node@(AssignStatement ident expression)) =     
-    ParserState $ let (_,s) = runState (checkAssignmentTypes ident node) env in s 
+    trace ("Checking Assignment. Current Env:\n" ++ (showStack env))  ParserState $ let (_,s) = runState (checkAssignmentTypes ident node) env in s 
 
 implicitTypeChecker (ParserState env) (FactorNode (FactorIntegerLiteralExpression i )) = 
-    trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" IntType) env in s 
+    trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" IntType) env in  s 
 
 
 implicitTypeChecker (ParserState env) (FactorNode (FactorBooleanLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" BooleanType) env in s 
 
 
-implicitTypeChecker (ParserState env) (FactorNode (FactorStringLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" StringType) env in s
+implicitTypeChecker (ParserState env) (FactorNode (FactorStringLiteralExpression i )) = trace ("Pushing " ++ (show i)) $ ParserState $ let (_,s) = runState (storeIdent "_infType" StringType) env in  s
 
 implicitTypeChecker (ParserState env) (FactorNode (IdentExpression i )) = trace ("Pushing ident " ++ (show i) ++ " with type: ") $ ParserState $ let (_,s) = runState (checkResolveIdentType i >>= storeIdent "_infType") env in s
 
 
-implicitTypeChecker (ParserState env) (ExpressionNode node@(FunctionCallExpression ident actualParams)) = trace ("Pushing function ident " ++ (show ident)) $ ParserState $ let (_,s) = runState (checkIdentIsFunction ident node >> checkResolveIdentType ident >>= storeIdent "_infType") env in s
+implicitTypeChecker (ParserState env) (ExpressionNode node@(FunctionCallExpression ident actualParams)) = trace ("Pushing function ident: " ++ (show ident) ++  " Current Env:\n" ++ (showStack env) ++ "\n\n") $ ParserState $ let (_,s) = runState (checkIdentIsFunction ident node >> checkActualParams ident node >> checkImplicitParams ident node >> checkResolveIdentType ident >>= storeIdent "_infType") env in s
 
 
  
-implicitTypeChecker (ParserState env) (ExpressionNode n) = trace ("Checking Expression: " ++ unparse n 0 "") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n) env in s
+implicitTypeChecker (ParserState env) (ExpressionNode n) = trace ("Checking Expression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n) env in s
 
 implicitTypeChecker (ParserState env) (EnterBlockBodyNode n) = 
     trace ("Entering block ") $ ParserState $ let (_,s) = runState (enterBlock) env in s 
@@ -236,8 +284,11 @@ implicitTypeChecker (ParserState env) (EnterBlockBodyNode n) =
 implicitTypeChecker (ParserState env) (ExitBlockBodyNode n) = 
     trace ("Exiting block ") $ ParserState $ let (_,s) = runState (exitBlock) env in s 
 
-implicitTypeChecker (ParserState env) (BlockStatementNode node@(FunctionBlockStatement varType ident formalParams implicitParams body)) = 
-    trace ("\n\nEntering Function Definition: " ++ (show ident) ++ " current env: " ++ (show env) ++ "\n\n") $ ParserState $ let (_,s) =  runState (checkFunctionAlreadyDefined ident node >> checkFunctionParameters formalParams implicitParams >>  storeFunctionIdent ident varType formalParams implicitParams) env in trace ("new env: " ++ (show s) ++ "\n\n") $ s 
+implicitTypeChecker (ParserState env) (EnterFunctionBlockStatementNode node@(FunctionBlockStatement varType ident formalParams implicitParams body)) = 
+    trace ("\n\nEntering Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  ParserState $ let (_,s) =  runState (checkFunctionAlreadyDefined ident node >> checkFunctionParameters formalParams implicitParams >>  storeFunctionIdent ident varType formalParams implicitParams >> reduceLexicalLevel) env in s 
+
+implicitTypeChecker (ParserState env) (ExitFunctionBlockStatementNode node@(FunctionBlockStatement varType ident formalParams implicitParams body)) = 
+    trace ("\nExiting Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  ParserState $ let (_,s) =  runState (pop) env in s 
 
 
 
