@@ -162,6 +162,12 @@ checkFunctionSignatureMatchesReturn expr =
                      else return ()
         _ -> error ("Return statement without a matching function [checkFunctionSignatureMatchesReturn]")
       
+checkLastTypeIsA :: (UnparseShow a) => a -> Type -> TCParserState Env ()
+checkLastTypeIsA node t = do 
+  lastIdent <- peek
+  case (identType lastIdent == t) of 
+    True -> return ()
+    False -> error ("Invalid types: " ++ (unparse node 0 "") ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType lastIdent)  ++ " [checkLastTypeIsA]")
       
 checkLastTwoTypesMatch :: Expression -> TCParserState Env ()
 checkLastTwoTypesMatch expr = do 
@@ -169,7 +175,7 @@ checkLastTwoTypesMatch expr = do
   rhs <- pop
   push rhs
   case (identType lhs) == (identType rhs) of
-    True -> return ()
+    True ->  return ()
     False -> error ("Type Error, Mismatched Types in Expression: " ++ unparse expr 0 "" ++ " [checkLastTwoTypesMatch]")
 
 checkAlreadyDefined :: Ident -> Statement-> TCParserState Env ()
@@ -278,6 +284,13 @@ implicitTypeChecker (ParserState env) (StatementNode node@(LocalVarDeclStatement
 implicitTypeChecker (ParserState env) (StatementNode node@(ReturnStatement stmt)) = 
     trace ("Checking Return Type. Current Env:\n" ++ (showStack env)) $ ParserState $ let (_,s) =  runState (checkFunctionSignatureMatchesReturn stmt) env in s 
 
+-- check that the lhs type equals the rhs type
+implicitTypeChecker (ParserState env) (StatementNode node@(IfStatement condition trueBranch falseBranch)) =     
+    trace ("Checking If Statement. Current Env:\n" ++ (showStack env))  ParserState $ let (_,s) = runState (checkLastTypeIsA node BooleanType) env in s 
+
+implicitTypeChecker (ParserState env) (StatementNode node@(WhileStatement condition body)) =     
+    trace ("Checking While Statement. Current Env:\n" ++ (showStack env))  ParserState $ let (_,s) = runState (checkLastTypeIsA node BooleanType) env in s 
+
 
 -- check that the lhs type equals the rhs type
 implicitTypeChecker (ParserState env) (StatementNode node@(AssignStatement ident expression)) =     
@@ -295,11 +308,30 @@ implicitTypeChecker (ParserState env) (FactorNode (FactorStringLiteralExpression
 implicitTypeChecker (ParserState env) (FactorNode (IdentExpression i )) = trace ("Pushing ident " ++ (show i) ++ " with type: ") $ ParserState $ let (_,s) = runState (checkResolveIdentType i >>= storeIdent "_infType") env in s
 
 
-implicitTypeChecker (ParserState env) (ExpressionNode node@(FunctionCallExpression ident actualParams)) = trace ("Pushing function ident: " ++ (show ident) ++  " Current Env:\n" ++ (showStack env) ++ "\n\n") $ ParserState $ let (_,s) = runState (checkIdentIsFunction ident node >> checkActualParams ident node >> checkImplicitParams ident node >> checkResolveIdentType ident >>= storeIdent "_infType") env in s
+implicitTypeChecker (ParserState env) (ExpressionNode node@(FunctionCallExpression ident actualParams)) = 
+    trace ("Pushing function ident: " ++ (show ident) ++  " Current Env:\n" ++ (showStack env) ++ "\n\n") $ ParserState $ let (_,s) = runState (checkIdentIsFunction ident node >> checkActualParams ident node >> checkImplicitParams ident node >> checkResolveIdentType ident >>= storeIdent "_infType") env in s
+
+implicitTypeChecker (ParserState env) (ExpressionNode n@(LtExpression expression term)) = 
+    trace ("Checking LTExpression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n >> checkLastTypeIsA n IntType >> pop >> storeIdent "_infType" BooleanType) env in s
+
+implicitTypeChecker (ParserState env) (ExpressionNode n@(GtExpression expression term)) = 
+    trace ("Checking GtExpression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n >> checkLastTypeIsA n IntType >> pop >> storeIdent "_infType" BooleanType) env in s
+
+implicitTypeChecker (ParserState env) (ExpressionNode n@(EqualsExpression expression term)) = 
+    trace ("Checking EqualsExpression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n >> pop >> storeIdent "_infType" BooleanType) env in s
+
+implicitTypeChecker (ParserState env) (ExpressionNode n@(AddExpression expression term)) = 
+    trace ("Checking AddExpression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n >> checkLastTypeIsA n IntType) env in s
+
+implicitTypeChecker (ParserState env) (ExpressionNode n@(MinusExpression expression term)) = 
+    trace ("Checking MinusExpression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n >> checkLastTypeIsA n IntType) env in s
 
 
- 
-implicitTypeChecker (ParserState env) (ExpressionNode n) = trace ("Checking Expression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n) env in s
+
+implicitTypeChecker (ParserState env) (ExpressionNode n) = 
+    trace ("Checking Expression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n) env in s
+
+
 
 implicitTypeChecker (ParserState env) (EnterBlockBodyNode n) = 
     trace ("Entering block ") $ ParserState $ let (_,s) = runState (enterBlock) env in s 

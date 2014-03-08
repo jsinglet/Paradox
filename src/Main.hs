@@ -59,7 +59,7 @@ doTypeCheck :: String -> IO ()
 doTypeCheck f = do 
   file <- readFile f
   let parseTree = parse (alexScanTokens file)  
-  putStrLn ("Raw AST: \n\n" ++ (show parseTree) ++ "\n\n")
+  putStrLn ("Pretty AST: \n\n" ++ prettyParse parseTree 0 "" ++ "\n\n")
   let parseResult = typeCheckAST parseTree
   putStrLn (show (length $ (internalParserState parseResult)) ++ " idents on final stack.")
   putStrLn ("OK")

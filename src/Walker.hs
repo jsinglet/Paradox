@@ -42,7 +42,8 @@ instance Walker BlockList where
 
 instance Walker BlockStatement where
     walk (BlockStatement bs) ps f = walk bs ps f
-    walk n@(FunctionBlockStatement varType ident formalParams implicitParams body) ps f = f (walk body (f ps (EnterFunctionBlockStatementNode n)) f) (ExitFunctionBlockStatementNode n)
+    walk n@(FunctionBlockStatement varType ident formalParams implicitParams body) ps f = 
+        f (walk body (f ps (EnterFunctionBlockStatementNode n)) f) (ExitFunctionBlockStatementNode n)
 
 
 -- FunctionBlockStatement Type Ident VarSpecList VarSpecList BlockBody 
@@ -57,9 +58,10 @@ instance Walker Statement where
     walk n@(AssignStatement ident expression) ps f = (f (walk expression ps f) (StatementNode n))
     walk n@(ReturnStatement stmt) ps f = (f (walk stmt ps f) (StatementNode n))
     walk n@(Skip) ps f = (f ps (StatementNode n))
-    walk n@(WhileStatement condition body) ps f = walk body (walk condition (f ps (StatementNode n)) f) f
+    walk n@(WhileStatement condition body) ps f = walk body (f (walk condition ps f) (StatementNode n)) f
     walk n@(FunctionCallStatement fn) ps f = (f ps (StatementNode n))
-    walk n@(IfStatement condition trueBranch falseBranch) ps f = walk falseBranch (walk trueBranch (walk condition (f ps (StatementNode n)) f) f) f
+    walk n@(IfStatement condition trueBranch falseBranch) ps f = 
+        walk falseBranch (walk trueBranch (f (walk condition ps f) (StatementNode n)) f) f
 
 instance Walker BlockBody where
     walk n@(BlockBody body) ps f = f (walk body (f ps (EnterBlockBodyNode n)) f) (ExitBlockBodyNode n)
@@ -67,7 +69,9 @@ instance Walker BlockBody where
 instance Walker Expression where
     -- Todo, need to do arg list
 
-    walk n@(FunctionCallExpression ident (ActualParametersList exprs)) ps f = f (foldl(\acc a -> walk a acc f) ps exprs) (ExpressionNode n)
+    walk n@(FunctionCallExpression ident (ActualParametersList exprs)) ps f = 
+        f (foldl(\acc a -> walk a acc f) ps exprs) (ExpressionNode n)
+
     -- for each of these, the union is implemented by calling the f function on a ps that has been first
     -- created for the left then the right then to the node itself. This will be the most flexible pattern. 
 
