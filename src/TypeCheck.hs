@@ -29,9 +29,9 @@ showStack e = concatMap (\x -> (show x) ++ "\n----------------------------------
 
 trace :: String -> a -> a
 -- quiet version 
--- trace _ a = a
+trace _ a = a
 -- loud version 
-trace s a = D.trace s a 
+--trace s a = D.trace s a 
 
 
 
@@ -169,7 +169,7 @@ checkLastTypeIsA node t = do
     True -> return ()
     False -> error ("Invalid types: " ++ (unparse node 0 "") ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType lastIdent)  ++ " [checkLastTypeIsA]")
       
-checkLastTwoTypesMatch :: Expression -> TCParserState Env ()
+checkLastTwoTypesMatch :: (UnparseShow a) => a -> TCParserState Env ()
 checkLastTwoTypesMatch expr = do 
   lhs <- pop
   rhs <- pop
@@ -330,6 +330,14 @@ implicitTypeChecker (ParserState env) (ExpressionNode n@(MinusExpression express
 
 implicitTypeChecker (ParserState env) (ExpressionNode n) = 
     trace ("Checking Expression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n) env in s
+
+
+
+implicitTypeChecker (ParserState env) (TermNode n@(MultiplyTerm t factor)) = 
+    trace ("Checking MultiplyTerm: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n >> checkLastTypeIsA n IntType) env in s
+
+implicitTypeChecker (ParserState env) (TermNode n@(DivideTerm t factor)) = 
+    trace ("Checking DivideTerm: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  ParserState $ let (_,s) = runState (checkLastTwoTypesMatch n >> checkLastTypeIsA n IntType) env in s
 
 
 
