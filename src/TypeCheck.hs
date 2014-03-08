@@ -1,4 +1,4 @@
-module TypeCheck where
+module TypeCheck (typeCheckAST) where
 
 import Parser
 import Data.List
