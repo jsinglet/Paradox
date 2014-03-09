@@ -7,6 +7,7 @@ import Test.Framework.Providers.HUnit
 import Test.HUnit
 
 import ParserTests
+import TypeCheckerTests
 
 main :: IO ()
 main = defaultMainWithOpts
@@ -36,6 +37,11 @@ main = defaultMainWithOpts
                         testCase "simpleIf" testIfStatement
                        ,testCase "ifElse" testIfElseStatement
                        ,testCase "ifElseNested" testNestedIfElseStatement
+                       ]
+       , testGroup "Type Checking" [
+                        testCase "testMismatchedAssign" testMismatchedAssign
+                       ,testCase "testIfStmt" testIfStmt
+
                        ]
                                  
        ] mempty

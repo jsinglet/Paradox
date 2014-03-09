@@ -10,6 +10,10 @@ import PrettyShow
 import UnparseShow
 import TypeCheck
 import Walker 
+import Control.Exception 
+import TypeCheckExceptions 
+import Data.String.Utils
+
 -- Eval this to use flymake in Emacs so it picks up the Parser and Scanner
 -- (setq ghc-ghc-options '("-i:../dist/build/paradox/paradox-tmp/"))
 
@@ -62,8 +66,7 @@ doTypeCheck f = do
   let parseTree = parse (alexScanTokens file)  
   putStrLn ("Pretty AST: \n\n" ++ prettyParse parseTree 0 "" ++ "\n\n")
   let parseResult = typeCheckAST parseTree
-  putStrLn (show (length $ (internalParserState parseResult)) ++ " idents on final stack.")
-  putStrLn ("OK")
+  catch (putStrLn (show (length $ (internalParserState parseResult)) ++ " idents on final stack.\nOK")) (\e -> putStrLn $ clean $ show (e :: TypeCheckException) )
 
 
 doUnparse :: String -> IO ()
@@ -72,3 +75,7 @@ doUnparse f = do
   let parseTree = parse (alexScanTokens file)  
   putStrLn ("Raw AST: \n\n" ++ (show parseTree))
   putStrLn ("\nUnparsed Program: [Note that Sugars are removed and replaced with the AST representation] \n\n" ++ unparse parseTree 0 "")
+
+
+clean :: String -> String
+clean s = replace "\\\"" "\"" (replace "\\n" "\n" s)

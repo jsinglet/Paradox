@@ -1,9 +1,11 @@
+Int n;
+Int z;
 
 
-Int a;
-Int b;
+if(n+z){
+  n:=3;
+}
 
 
-a := 1*1;
 
-a :=1/a;
+

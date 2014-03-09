@@ -19,7 +19,7 @@ executable paradox
   hs-source-dirs:      src	
   build-tools:         happy, alex
   other-modules:       Parser, Scanner, QQ
-  build-depends:       base >= 4, array, template-haskell, monads-tf
+  build-depends:       base >= 4, array, template-haskell, monads-tf, MissingH
 
 test-suite paradox-tests
   main-is:		Main.hs
@@ -27,4 +27,4 @@ test-suite paradox-tests
   build-tools:          happy, alex
   other-modules:        Parser, Scanner, ParserTests, QQ
   type:                 exitcode-stdio-1.0
-  build-depends:        base >= 4 && < 5, bytestring, directory, filepath, test-framework, test-framework-hunit, HUnit, array, template-haskell, text >= 0.11.1.5
+  build-depends:        base >= 4 && < 5, bytestring, directory, filepath, test-framework, test-framework-hunit, HUnit, array, template-haskell, text >= 0.11.1.5, testpack >=2, MissingH
