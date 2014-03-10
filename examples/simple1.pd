@@ -1,11 +1,15 @@
 Int n;
-Int z;
+String z;
 
+fn Int bar() implicitly [Int x] {
+   return x;   
+}
 
-if(n+z){
-  n:=3;
+fn Int foo()  {
+   String x;
+   return bar();
 }
 
 
-
+foo();
 

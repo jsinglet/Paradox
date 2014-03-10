@@ -37,11 +37,14 @@ main = defaultMainWithOpts
                         testCase "simpleIf" testIfStatement
                        ,testCase "ifElse" testIfElseStatement
                        ,testCase "ifElseNested" testNestedIfElseStatement
-                       ]
+                       ] 
        , testGroup "Type Checking" [
                         testCase "testMismatchedAssign" testMismatchedAssign
                        ,testCase "testIfStmt" testIfStmt
-
+                       ,testCase "testReturnTypeMismatch" testReturnTypeMismatch
+                       ,testCase "testMissingImplicitParam" testMissingImplicitParam
+                       ,testCase "testMissingImplicitParam2" testMissingImplicitParam2
+                       ,testCase "testImplicitParamsMismatch" testImplicitParamsMismatch
                        ]
                                  
        ] mempty
