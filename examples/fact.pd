@@ -1,9 +1,10 @@
 //
-// Computes factorial of 10.
+// Computes factorial of 10 (and in parallel the sum)
 //
 
-
-fn Int fact(Int n){
+fn Int fact(Int n) implicitly [Int sum] {
+   
+   sum := sum+n;
 
    if (n=0){
       return n;
@@ -12,6 +13,9 @@ fn Int fact(Int n){
    return n*(fact(n-1));
 }
 
+Int sum;
 Int factOf10;
+
+sum :=0;
 
 factOf10 := fact(10);

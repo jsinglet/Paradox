@@ -69,8 +69,8 @@ peek = TCParserState $ \s@(x:_) -> (x,s)
 push :: EnvEntry -> TCParserState Env ()  
 push entry = TCParserState $ \xs -> ((),entry:xs)  
 
-popActualParams :: TCParserState Env Env
-popActualParams = TCParserState $ \xs ->  let top = takeWhile (\e -> identName e == "_infType") xs in (reverse top, drop (length top) xs)
+popActualParams :: Int -> TCParserState Env Env
+popActualParams l = TCParserState $ \xs ->  let top = take l xs in (reverse top, drop (length top) xs)
 
 get :: TCParserState Env ()  
 get = TCParserState $ \xs -> ((),xs)  
@@ -224,10 +224,10 @@ checkImplicitParams ident node = do
   
 
 
-checkActualParams :: Ident -> Expression -> TCParserState Env ()
-checkActualParams ident node = do 
+checkActualParams :: Int -> Ident -> Expression -> TCParserState Env ()
+checkActualParams l ident node = do 
   (Just fn) <- getIdent ident
-  actualParams <- popActualParams
+  actualParams <- popActualParams l
   let (Just (VarSpecList spec)) = methodSpec fn
   -- the intersection of their type signatures should be equal
   let lhs = map (identType) actualParams 
@@ -325,9 +325,9 @@ implicitTypeChecker (ParserState env) (FactorNode (IdentExpression i )) =
           ParserState $ let (_,s) = runState (checkResolveIdentType i >>= storeIdent "_infType") env in s
 
 
-implicitTypeChecker (ParserState env) (ExpressionNode node@(FunctionCallExpression ident actualParams)) = 
+implicitTypeChecker (ParserState env) (ExpressionNode node@(FunctionCallExpression ident (ActualParametersList actualParams))) = 
     trace ("Pushing function ident: " ++ (show ident) ++  " Current Env:\n" ++ (showStack env) ++ "\n\n") $ 
-          ParserState $ let (_,s) = runState (checkIdentIsFunction ident node >> checkActualParams ident node >> checkImplicitParams ident node >> checkResolveIdentType ident >>= storeIdent "_infType") env in s
+          ParserState $ let (_,s) = runState (checkIdentIsFunction ident node >> checkActualParams (length actualParams) ident node >> checkImplicitParams ident node >> checkResolveIdentType ident >>= storeIdent "_infType") env in s
 
 implicitTypeChecker (ParserState env) (ExpressionNode n@(LtExpression expression term)) = 
     trace ("Checking LTExpression: " ++ unparse n 0 "" ++ ". Current Env:\n" ++ (showStack env) ++ "\n\n") $  
