@@ -24,6 +24,7 @@ ident		 { TokenIdent $$      	  }
 ':='   { TokenAssign }
 ';'    { TokenSemi   }
 ','    { TokenSep    }
+'->'   { TokenArrow  }
 '+'    { TokenAdd   }
 '-'    { TokenMinus  }
 '*'    { TokenMultiply  }
@@ -40,6 +41,7 @@ ident		 { TokenIdent $$      	  }
 'if' { TokenIf }
 'else' { TokenElse }
 'return' { TokenReturn }
+'data'   { TokenData   }
      
 
 %%
@@ -51,13 +53,20 @@ BlockList : BlockStatement { BlockList [$1] }
 
 BlockStatement : FunctionBlock { $1 }
     | StatementList { BlockStatement $1 }
+    | UDT { $1 }
       
 FunctionBlock : 'fn'  FnType ident '(' VarSpecList ')' BlockBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $ VarSpecList []) $7  }
     | 'fn' FnType ident '(' VarSpecList ')' 'implicitly' '[' VarSpecList ']' BlockBody { FunctionBlockStatement $2 $3 $5 (ImplicitVarSpec $9) $11 }
 
-
 StatementList :  Statement { StatementList [$1] }
     | Statement StatementList { combineStatementLists $1 $2 } 
+
+
+UDT : 'data' ident '=' '(' UDTVarSpecList ')' ';' { UDTStatement $2 $5 }
+
+UDTVarSpecList : { UDTVarSpecList [] }
+    | Type { UDTVarSpecList [$1] }
+    | Type '->' UDTVarSpecList { combineUDTVarSpecLists $1 $3 }
 
 
 Statement : VarSpec ';' { LocalVarDeclStatement $1 }
@@ -74,6 +83,7 @@ VarSpecList : { VarSpecList [] }
     | VarSpec ',' VarSpecList { combineVarSpecLists $1 $3 }
 
 VarSpec : Type ident { VarSpec $1 $2 }
+
 
 ActualParametersList : { ActualParametersList [] }
     | Expression { ActualParametersList [$1]}
@@ -92,7 +102,7 @@ FnType : Type { $1 }
 Type : "Int" {IntType}
     | "String" {StringType}
     | "Boolean" {BooleanType}
-
+    | ident     { IdentType $1 }
 
 Expression : Factor { FactorExpression }
     | Expression '+' Term { AddExpression $1 $3 }
@@ -131,6 +141,11 @@ combineStatementLists s (StatementList stats) = StatementList (s:stats)
 combineVarSpecLists :: VarSpec -> VarSpecList -> VarSpecList
 combineVarSpecLists s (VarSpecList specs) = VarSpecList (s:specs)
 
+combineUDTVarSpecLists :: Type -> UDTVarSpecList -> UDTVarSpecList
+combineUDTVarSpecLists s (UDTVarSpecList specs) = UDTVarSpecList (s:specs)
+
+
+
 data Program 
     = Program BlockList 
       deriving (Show, Eq)
@@ -138,6 +153,7 @@ data Program
 data BlockStatement
     = BlockStatement StatementList
     | FunctionBlockStatement Type Ident VarSpecList VarSpecList BlockBody 
+    | UDTStatement Ident UDTVarSpecList
       deriving (Show, Eq)
 
 data BlockList
@@ -148,7 +164,6 @@ data VarSpec =
      VarSpec Type Ident
       deriving (Show, Eq)
 
-
 data ActualParametersList = 
     ActualParametersList [Expression]
      deriving (Show, Eq)
@@ -158,6 +173,11 @@ data VarSpecList =
      | ImplicitVarSpec VarSpecList
      | EmptySpec 
       deriving (Show, Eq)
+
+data UDTVarSpecList = 
+     UDTVarSpecList [Type]
+      deriving (Show, Eq)
+
 
 data Statement 
     = AssignStatement Ident Expression
@@ -221,6 +241,6 @@ type Boolean_Literal
     = Bool
 
 parseError :: [Token] -> a
-parseError _ = error "Parse Error!"
+parseError tokens@(h:t) = error $ "Parse Error: " ++ (show tokens)
 
 }

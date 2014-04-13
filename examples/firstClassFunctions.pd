@@ -1,0 +1,16 @@
+
+data MyType = (Int -> Int);
+
+fn Int doMathOp(Int op1, Int op2, MyType f){
+
+   return 0;
+}
+
+fn Int addNumbers(Int a, Int b){
+   return a+b;
+}
+
+fna(1);
+
+
+doSomeComputation(5,10);

@@ -32,6 +32,8 @@ tokens :-
        "<"		{ \s -> TokenLt	    }
        ":="		{ \s -> TokenAssign }
        ","		{ \s -> TokenSep    }
+       "->"		{ \s -> TokenArrow  }
+       "data"		{ \s -> TokenData   }
        ";"		{ \s -> TokenSemi   }
        "+"		{ \s -> TokenAdd    }
        "-"		{ \s -> TokenMinus  }
@@ -89,6 +91,8 @@ data Token
     | TokenOpenBracket
     | TokenCloseBracket 
     | TokenWhile
+    | TokenArrow 
+    | TokenData
       deriving (Show, Eq)
 
                

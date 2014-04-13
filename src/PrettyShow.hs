@@ -21,6 +21,8 @@ instance PrettyShow BlockList where
     prettyParse bl@(BlockList bls) depth acc = acc ++ (indent depth) ++(prettyShow bl) ++ (concat $ map (\b -> case b of
                                                                     bs@(BlockStatement  _ ) -> prettyParse bs (depth+1) ""
                                                                     fs@(FunctionBlockStatement _ _ _ _ _ ) -> prettyParse fs (depth+1) ""
+                                                                    ud@(UDTStatement _ _) -> prettyParse ud depth ""
+
                                                            ) bls) ++ (indent depth) ++ "]\n"
                                                                          
 instance PrettyShow BlockStatement where
@@ -33,6 +35,7 @@ instance PrettyShow BlockStatement where
                                                                                                                                            , (show formalParameters)
                                                                                                                                            , (show implicitParameters), "\n"]) 
                                                                                                                    ++ prettyParse body (depth +1) " "
+    prettyParse udt@(UDTStatement name signature) depth acc =  (indent depth) ++ (show udt) ++ "\n"
 
 instance PrettyShow BlockBody where
     prettyShow (BlockBody _ ) = "BlockBody:\n"
@@ -52,3 +55,4 @@ instance PrettyShow Statement where
     prettyParse (Skip) depth acc = acc ++ "Skip" ++ "\n"
     prettyParse (WhileStatement condition body) depth acc = acc ++ (indent depth) ++ "(WhileStatement " ++ (show condition) ++ "\n" ++ (prettyParse body (depth+4) "")
     prettyParse (IfStatement condition trueBranch falseBranch) depth acc =  acc ++ (indent depth) ++ "(IfStatement " ++ (show condition) ++ "\n" ++ (prettyParse trueBranch (depth+4)  "") ++  (prettyParse falseBranch (depth+4)  "") 
+    prettyParse (FunctionCallStatement fn) depth acc = acc ++ (indent depth) ++ "(FunctionCallStatement " ++ (show fn) ++ "\n"

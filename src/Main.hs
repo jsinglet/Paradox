@@ -11,7 +11,7 @@ import UnparseShow
 import TypeCheck
 import Walker 
 import Control.Exception 
-import TypeCheckExceptions 
+import TypeCheckExceptions  
 import Data.String.Utils
 
 -- Eval this to use flymake in Emacs so it picks up the Parser and Scanner

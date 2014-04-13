@@ -30,7 +30,9 @@ tokenMap =  [ (TokenAssign, ":=")
             , (TokenDivide, "/")
             , (TokenGt, ">")
             , (TokenLt, "<")
-            , (TokenEquals, "=")]  
+            , (TokenEquals, "=")
+            , (TokenArrow, "->")
+            , (TokenData, "data")]  
 
 mapToken :: Token -> String
 mapToken t = do
@@ -48,6 +50,7 @@ instance UnToken Type where
     untoken (StringType) = "String"
     untoken (BooleanType) = "Boolean"
     untoken (VoidType)    = "Void"
+    untoken (IdentType t) = (show t)
 
 class UnparseShow a where
     unparse :: a -> Int -> String -> String
@@ -62,13 +65,18 @@ instance UnparseShow BlockList where
                                                                  case b of
                                                                    bs@(BlockStatement _) -> unparse bs depth  ""
                                                                    fs@(FunctionBlockStatement _ _ _ _ _ ) -> unparse fs depth ""
+                                                                   ud@(UDTStatement _ _) -> unparse ud depth ""
                                                             ) bls )
                                                                                         
 
 instance UnparseShow BlockStatement where
     unparse (BlockStatement bs) depth acc = acc ++ (unparse bs depth "")
     unparse (FunctionBlockStatement returnType name formalParameters implicitParameters body) depth acc = acc ++ (indent depth) ++ (mapToken TokenFn) ++ " " ++  (untoken returnType) ++ " " ++ name ++ (mapToken TokenOpenParen) ++ (unparse formalParameters depth acc)  ++ (mapToken TokenCloseParen) ++ " " ++ (unparse implicitParameters depth acc) ++ (unparse body depth acc) 
+    unparse (UDTStatement name signature) depth acc = acc ++ (mapToken TokenData) ++ " " ++ name ++ (mapToken TokenEquals) ++ (mapToken TokenOpenParen) ++ (unparse signature depth "") ++ (mapToken TokenCloseParen) ++ (mapToken TokenSemi) ++ "\n"
 
+
+instance UnparseShow UDTVarSpecList where 
+    unparse (UDTVarSpecList specs) depth acc = concat $ intersperse (" " ++ mapToken TokenArrow ++ " ") (map (\spec -> (untoken spec)) specs)
 
 instance UnparseShow ActualParametersList where
     unparse (ActualParametersList params) depth acc = concat $ intersperse ", " (map (\param -> unparse param depth "") params)
