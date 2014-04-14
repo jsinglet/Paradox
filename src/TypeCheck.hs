@@ -250,7 +250,7 @@ checkImplicitParams ident node = do
                          mapM (\(VarSpec t i) -> do 
                                  implicitParam <- getIdent i
                                  case (implicitParam) of 
-                                   (Just i') -> if t==(identType i') then return () else  throw (ImplicitParamsMismatch $ "Implicit parameter types do not match in function call: " ++ chomp (unparse node 0 "") ++ " for [yas] elisp error! Symbol's function definition is void: ca-with-commentiable: "++ (show i) ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType i')  ++ " [checkImplicitParams]")
+                                   (Just i') -> if t==(identType i') then return () else  throw (ImplicitParamsMismatch $ "Implicit parameter types do not match in function call: " ++ chomp (unparse node 0 "") ++ " for variable: " ++ (show i) ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType i')  ++ " [checkImplicitParams]")
                                    Nothing   -> throw (ImplicitParamsUndefined $ "Implicit parameter not defined in function call: " ++ chomp (unparse node 0 "") ++ " for parameter: " ++ (show i)  ++ " [checkImplicitParams]")
                               ) spec
                          return ()
