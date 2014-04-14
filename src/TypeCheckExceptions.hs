@@ -13,6 +13,7 @@ data TypeCheckException =
     | InvalidTypes String 
     | MismatchedExprType String
     | VarAlreadyDefined String
+    | UDTAlreadyDefined String
     | IdentNotFunction String
     | ImplicitParamsMismatch String
     | ImplicitParamsUndefined String

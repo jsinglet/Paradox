@@ -1,16 +1,13 @@
 
-data MyType = (Int -> Int);
+data MyType = (Int -> Int -> Int);
 
-fn Int doMathOp(Int op1, Int op2, MyType f){
+fn Int doMathOp(Int op1, Int op2){
 
-   return 0;
+   return (op1+op2);
 }
 
-fn Int addNumbers(Int a, Int b){
-   return a+b;
-}
-
-fna(1);
+Boolean a;
 
 
-doSomeComputation(5,10);
+
+doMathOp(5,19999);

@@ -18,12 +18,13 @@ data EnvEntry = EnvEntry {
     , methodSpec :: Maybe VarSpecList
     , implicitSpec :: Maybe VarSpecList
     , level :: Int
+    , udtSpec :: Maybe UDTVarSpecList
     } 
 
 type Env = [EnvEntry]
 
 instance Show EnvEntry where
-    show a = let l = (identName a, identType a, level a) in (show l)
+    show a = let l = (identName a, identType a, level a, udtSpec a) in (show l)
 
 showStack :: Env -> String
 showStack e = concatMap (\x -> (show x) ++ "\n-----------------------------------------------\n") e
@@ -31,9 +32,9 @@ showStack e = concatMap (\x -> (show x) ++ "\n----------------------------------
 
 trace :: String -> a -> a
 -- quiet version 
-trace _ a = a
+--trace _ a = a
 -- loud version 
---trace s a = D.trace s a 
+trace s a = D.trace s a 
 
 
 chomp :: String -> String 
@@ -51,7 +52,7 @@ instance Monad (TCParserState s) where
                                                 in  g newState  
 
 newEnv :: Env
-newEnv = [EnvEntry "________basePointer" VoidType Nothing Nothing 0]
+newEnv = [EnvEntry "________basePointer" VoidType Nothing Nothing 0 Nothing]
 
 --
 -- TCParserState manipulation and query functions
@@ -85,22 +86,44 @@ currLevel =  do
 storeIdent :: Ident -> Type -> TCParserState Env ()
 storeIdent ident varType = do 
   cl <- currLevel
-  push (EnvEntry ident varType Nothing Nothing cl) 
+  push (EnvEntry ident varType Nothing Nothing cl Nothing) 
+
+storeUDT :: Ident -> UDTVarSpecList -> TCParserState Env ()
+storeUDT ident spec = do 
+  cl <- currLevel
+  push (EnvEntry ident VoidType Nothing Nothing cl (Just spec))
 
 storeFunctionIdent :: Ident -> Type -> VarSpecList -> VarSpecList  -> TCParserState Env ()
 storeFunctionIdent ident varType (VarSpecList formalParams) (ImplicitVarSpec (VarSpecList implicitParams)) = do 
   cl <- currLevel
-  push (EnvEntry ident varType (Just (VarSpecList formalParams)) (Just (VarSpecList implicitParams)) cl) 
+  push (EnvEntry ident varType (Just (VarSpecList formalParams)) (Just (VarSpecList implicitParams)) cl Nothing) 
   -- store all the implicit and formal params 
   mapM (\(VarSpec t i)  -> do 
-         push (EnvEntry i t Nothing Nothing (cl+1)) 
+          case t of 
+            (IdentType fnIdent) -> do
+                   e <- (udtToEnvEntry fnIdent i (cl+1))
+                   trace ("Pushing Formal Parameter (local higher order function) " ++ (show e)) $ push e
+            _ -> trace ("Pushing Formal Parameter..." ++ (show t)) $ push (EnvEntry i t Nothing Nothing (cl+1) Nothing) 
       ) formalParams
 
   mapM (\(VarSpec t i)  -> do 
-         push (EnvEntry i t Nothing Nothing (cl+1)) 
+         push (EnvEntry i t Nothing Nothing (cl+1) Nothing) 
       ) implicitParams
 
   return ()
+
+udtToEnvEntry :: Ident -> String -> Int ->  TCParserState Env (EnvEntry)
+udtToEnvEntry typeIdent localName cl = do 
+  -- x <- getIdent typeIdent
+  -- error ("found ident" ++ show x)
+  -- Important: to tell these anonymous types apart from regular ones we make the udtType field an empty list.
+  (Just (EnvEntry _ _ _ _ _ (Just (UDTVarSpecList formalParams)))) <- getIdent typeIdent
+  return (EnvEntry localName (last formalParams) (toFormalParams (take ((length formalParams)-1) formalParams)) Nothing cl (Just $ UDTVarSpecList []))
+         where
+           -- this is a list of VarSpecs.
+           toFormalParams params = Just (VarSpecList $ map (\e -> VarSpec e "_unbound") params)
+
+
 
 clearReduceLexicalLevel :: TCParserState Env ()
 clearReduceLexicalLevel = do 
@@ -112,7 +135,7 @@ reduceLexicalLevel (VarSpecList formalParams) (ImplicitVarSpec (VarSpecList impl
   cl <- currLevel
   case ((length formalParams) + (length implicitParams) > 0) of
     True -> do
-        push (EnvEntry "________lexicalReduction" VoidType Nothing Nothing (cl-1))
+        push (EnvEntry "________lexicalReduction" VoidType Nothing Nothing (cl-1) Nothing)
         return (cl-1)
     False -> 
         return (cl)
@@ -129,7 +152,7 @@ enterBlock = do
   -- first get rid of any inf at the current level
   clearInf
   -- mark this block
-  push (EnvEntry  "________blockEnter" VoidType Nothing Nothing (cl+1))
+  push (EnvEntry  "________blockEnter" VoidType Nothing Nothing (cl+1) Nothing)
 
 exitBlock :: TCParserState Env ()
 exitBlock = do 
@@ -142,8 +165,8 @@ getIdent :: Ident -> TCParserState Env (Maybe EnvEntry)
 getIdent ident = TCParserState $ \xs -> (foldr (\x acc -> if (identName x == ident) then Just x else acc) Nothing xs, xs)
 
 getLastFunctionIdent :: TCParserState Env (Maybe EnvEntry)
-getLastFunctionIdent = TCParserState $ \xs -> (foldr (\x acc -> case (methodSpec x) of 
-                                                                  (Just _) -> Just x 
+getLastFunctionIdent = TCParserState $ \xs -> (foldr (\x acc -> case ((udtSpec x, methodSpec x)) of 
+                                                                  (Nothing, Just _) -> Just x 
                                                                   _ -> acc) Nothing xs, xs)
 
 
@@ -190,6 +213,15 @@ checkAlreadyDefined ident node = do
     (Just _) -> throw (VarAlreadyDefined $ "Variable already defined: " ++ chomp (unparse node 0 "")  ++ " [checkAlreadyDefined]")
     Nothing  -> return ()
 
+checkUDTAlreadyDefined :: Ident -> BlockStatement-> TCParserState Env ()
+checkUDTAlreadyDefined ident node = do 
+  cl <- currLevel
+  found <- getIdentAtLevel ident cl
+  case found of 
+    (Just _) -> throw (UDTAlreadyDefined $ "UDT already defined: " ++ chomp (unparse node 0 "")  ++ " [checkUDTAlreadyDefined]")
+    Nothing  -> return ()
+
+
 checkFunctionAlreadyDefined :: Ident -> BlockStatement-> TCParserState Env ()
 checkFunctionAlreadyDefined ident node = do 
   cl <- currLevel
@@ -210,18 +242,19 @@ checkIdentIsFunction ident node = do
 checkImplicitParams :: Ident -> Expression -> TCParserState Env ()
 checkImplicitParams ident node = do 
   (Just fn) <- getIdent ident
-  let (Just (VarSpecList spec)) = implicitSpec fn
-  -- For each member of the implicit spec, ensure the following:
-  -- 1) That it is defined in the current env
-  -- 2) That the types match
-  mapM (\(VarSpec t i) -> do 
-          implicitParam <- getIdent i
-          case (implicitParam) of 
-            (Just i') -> if t==(identType i') then return () else  throw (ImplicitParamsMismatch $ "Implicit parameter types do not match in function call: " ++ chomp (unparse node 0 "") ++ " for variable: "++ (show i) ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType i')  ++ " [checkImplicitParams]")
-            Nothing   -> throw (ImplicitParamsUndefined $ "Implicit parameter not defined in function call: " ++ chomp (unparse node 0 "") ++ " for parameter: " ++ (show i)  ++ " [checkImplicitParams]")
-       ) spec
-  return ()
-  
+  case (implicitSpec fn) of
+    (Just (VarSpecList spec)) -> do 
+                         -- For each member of the implicit spec, ensure the following:
+                         -- 1) That it is defined in the current env
+                         -- 2) That the types match
+                         mapM (\(VarSpec t i) -> do 
+                                 implicitParam <- getIdent i
+                                 case (implicitParam) of 
+                                   (Just i') -> if t==(identType i') then return () else  throw (ImplicitParamsMismatch $ "Implicit parameter types do not match in function call: " ++ chomp (unparse node 0 "") ++ " for [yas] elisp error! Symbol's function definition is void: ca-with-commentiable: "++ (show i) ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType i')  ++ " [checkImplicitParams]")
+                                   Nothing   -> throw (ImplicitParamsUndefined $ "Implicit parameter not defined in function call: " ++ chomp (unparse node 0 "") ++ " for parameter: " ++ (show i)  ++ " [checkImplicitParams]")
+                              ) spec
+                         return ()
+    _ -> return () -- in this case it's to be ignored.
 
 
 checkActualParams :: Int -> Ident -> Expression -> TCParserState Env ()
@@ -287,6 +320,13 @@ implicitTypeChecker (ParserState env) (StatementNode node@(LocalVarDeclStatement
           let (_,s) =  runState (checkAlreadyDefined ident node >> storeIdent ident varType) env in 
           trace ("New Env:\n" ++ (showStack s) ++ "\n\n") $ s 
 
+
+implicitTypeChecker (ParserState env) (BlockStatementNode node@(UDTStatement name signature)) =
+    trace ("\n\nEntering UDT Definition: " ++ (show node) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n") $ ParserState $
+          let (_,s) = runState (checkUDTAlreadyDefined name node >> storeUDT name signature) env in
+          trace ("New Env:\n" ++ (showStack s) ++ "\n\n") $ s 
+          
+
 implicitTypeChecker (ParserState env) (StatementNode node@(ReturnStatement stmt)) = 
     trace ("Checking Return Type. Current Env:\n" ++ (showStack env)) $ 
           ParserState $ let (_,s) =  runState (checkFunctionSignatureMatchesReturn stmt) env in s 
@@ -324,6 +364,9 @@ implicitTypeChecker (ParserState env) (FactorNode (IdentExpression i )) =
     trace ("Pushing ident " ++ (show i) ++ " with type: ") $ 
           ParserState $ let (_,s) = runState (checkResolveIdentType i >>= storeIdent "_infType") env in s
 
+implicitTypeChecker (ParserState env) (StatementNode (FunctionCallStatement node@(FunctionCallExpression ident (ActualParametersList actualParams)))) = 
+    trace ("Pushing function ident: " ++ (show ident) ++  " Current Env:\n" ++ (showStack env) ++ "\n\n") $ 
+          ParserState $ let (_,s) = runState (checkIdentIsFunction ident node  >> checkActualParams (length actualParams) ident node >> checkImplicitParams ident node) env in s
 
 implicitTypeChecker (ParserState env) (ExpressionNode node@(FunctionCallExpression ident (ActualParametersList actualParams))) = 
     trace ("Pushing function ident: " ++ (show ident) ++  " Current Env:\n" ++ (showStack env) ++ "\n\n") $ 
@@ -377,4 +420,4 @@ implicitTypeChecker (ParserState env) (ExitFunctionBlockStatementNode node@(Func
 
 -- check that this var isn't already defined 
 -- default case, do nothing
-implicitTypeChecker before node = trace ("Skipping Node") $ before
+implicitTypeChecker before node = trace ("Skipping Node::=" ++ (show node)) $ before

@@ -44,6 +44,7 @@ instance Walker BlockStatement where
     walk (BlockStatement bs) ps f = walk bs ps f
     walk n@(FunctionBlockStatement varType ident formalParams implicitParams body) ps f = 
         f (walk body (f ps (EnterFunctionBlockStatementNode n)) f) (ExitFunctionBlockStatementNode n)
+    walk n@(UDTStatement name signature) ps f = (f ps (BlockStatementNode n))
 
 
 -- FunctionBlockStatement Type Ident VarSpecList VarSpecList BlockBody 
@@ -59,7 +60,8 @@ instance Walker Statement where
     walk n@(ReturnStatement stmt) ps f = (f (walk stmt ps f) (StatementNode n))
     walk n@(Skip) ps f = (f ps (StatementNode n))
     walk n@(WhileStatement condition body) ps f = walk body (f (walk condition ps f) (StatementNode n)) f
-    walk n@(FunctionCallStatement fn) ps f = (f ps (StatementNode n))
+    walk n@(FunctionCallStatement (FunctionCallExpression ident (ActualParametersList exprs))) ps f = f (foldl(\acc a -> walk a acc f) ps exprs) (StatementNode n)
+
     walk n@(IfStatement condition trueBranch falseBranch) ps f = 
         walk falseBranch (walk trueBranch (f (walk condition ps f) (StatementNode n)) f) f
 
