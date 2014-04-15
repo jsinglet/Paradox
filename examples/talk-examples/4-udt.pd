@@ -1,0 +1,74 @@
+
+// data IntToInt = (Int -> Int -> String);
+
+// fn Int someOp(Int a, Int b, IntToInt f){
+//    return f(a,b);
+// }
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////
+
+
+
+
+
+
+// data IntToInt = (Int -> Int -> Int);
+
+// fn Int someOp(Int a, Int b, IntToInt f) implicitly [OtherUdt g] {
+//    return f(a,b);
+// }
+
+
+
+//////////////////////////////////////////////////////
+
+
+// data IntToInt = (Int -> Int -> Int);
+// data IntToInt2 = (Int -> Int -> String);
+
+// fn Int someOp(Int a, Int b, IntToInt f) implicitly [IntToInt2 g] {
+//    return g(a,b);
+// }
+
+
+
+///////////////////////////////////////////////////////
+
+
+data IntToInt = (Int -> Int -> Int);
+
+
+fn Int someOp(Int a, Int b) implicitly [IntToInt g] {
+   return g(a,b);
+}
+
+
+fn Int g(Int a, Int b){
+    return a+b;
+}
+
+someOp(2,3);
+
+
+
+
+
+/////////////////////////////////
+
+
+
+
+
+// data IntToInt = (Int -> Int -> Int);
+
+// fn Int someOp(Int a, Int b, IntToInt f){
+//    return f(a,b);
+// }

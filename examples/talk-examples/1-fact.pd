@@ -1,0 +1,17 @@
+//
+// Computes factorial of 10 
+//
+
+fn Int fact(Int n)  {
+   
+   if (n=0){
+      return n;
+   }
+
+   return n*(fact(n-1));
+}
+
+
+Int factOf10;
+
+factOf10 := fact(10);

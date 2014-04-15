@@ -1,0 +1,43 @@
+
+
+
+fn Void g() implicitly [Int y]  {
+   Int x;
+   x := y+1;
+}
+
+fn Void f() implicitly [Int y] {
+   g();
+}
+
+
+f();
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////
+
+
+
+
+// fn Void g() implicitly [Int y]  {
+//    Int x;
+//    x := y+1;
+// }
+
+// fn Void f() implicitly [Int y] {
+//    g();
+// }
+
+
+// Int y;
+
+// f();
+
+

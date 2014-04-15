@@ -32,9 +32,9 @@ showStack e = concatMap (\x -> (show x) ++ "\n----------------------------------
 
 trace :: String -> a -> a
 -- quiet version 
---trace _ a = a
+trace _ a = a
 -- loud version 
-trace s a = D.trace s a 
+--trace s a = D.trace s a 
 
 
 chomp :: String -> String 
@@ -107,7 +107,11 @@ storeFunctionIdent ident varType (VarSpecList formalParams) (ImplicitVarSpec (Va
       ) formalParams
 
   mapM (\(VarSpec t i)  -> do 
-         push (EnvEntry i t Nothing Nothing (cl+1) Nothing) 
+          case t of 
+            (IdentType fnIdent) -> do
+                   e <- (udtToEnvEntry fnIdent i (cl+1))
+                   trace ("Pushing Implicit Parameter (local higher order function) " ++ (show e)) $ push e
+            _ -> push (EnvEntry i t Nothing Nothing (cl+1) Nothing) 
       ) implicitParams
 
   return ()
@@ -296,9 +300,36 @@ checkResolveIdentType ident = do
 
 checkFunctionParameters :: VarSpecList -> VarSpecList -> TCParserState Env ()
 checkFunctionParameters (VarSpecList formalParams) (ImplicitVarSpec (VarSpecList implicitParams)) = 
-    let l1 = map (\(VarSpec _ i) -> i) formalParams in let l2 = map (\(VarSpec _ i) -> i) implicitParams in case (length $ intersect l1 l2) of
-                                                                                                              0 -> return ()
-                                                                                                              _ -> throw (ConflictingDefinitions $ "Conflicting definitions in formal and implicit params. [checkFunctionParameters]") 
+    let l1 = map (\(VarSpec _ i) -> i) formalParams in 
+    let l2 = map (\(VarSpec _ i) -> i) implicitParams in 
+    case (length $ intersect l1 l2) of
+      0 -> return ()
+      _ -> throw (ConflictingDefinitions $ "Conflicting definitions in formal and implicit params. [checkFunctionParameters]") 
+
+extractUDTTypes :: [VarSpec] -> [Ident]
+extractUDTTypes l = map (\(VarSpec (IdentType t) _) -> t) $ filter (\e -> case e of
+                                    (VarSpec (IdentType t) _) -> True 
+                                    _ -> False) l
+
+checkFunctionUDTParameters :: VarSpecList -> VarSpecList -> TCParserState Env ()
+checkFunctionUDTParameters (VarSpecList formalParams) (ImplicitVarSpec (VarSpecList implicitParams)) = do
+    -- combine them into one
+    let combinedUDTParams = extractUDTTypes (formalParams ++ implicitParams)
+    -- if there is more than one, ensure we can find each of them.
+    case (length combinedUDTParams)==0 of
+      True -> return ()
+      _ -> do 
+        mapM ( \n -> do 
+                 maybeIdent <- getIdent n
+                 case maybeIdent of
+                   Nothing -> throw (UndeclaredUDT $ "Undeclared UDT: " ++ (show n) ++ " [checkFunctionUDTParameters]") combinedUDTParams
+                   (Just theIdent) -> do 
+                                   case (udtSpec theIdent) of
+                                     (Just a) -> return ()
+                                     Nothing  -> throw (UndeclaredUDT $ "Undeclared UDT: " ++ (show n) ++ " [checkFunctionUDTParameters]")) combinedUDTParams
+        
+        return ()
+
 
 --
 -- Main hook
@@ -412,7 +443,7 @@ implicitTypeChecker (ParserState env) (ExitBlockBodyNode n) =
 
 implicitTypeChecker (ParserState env) (EnterFunctionBlockStatementNode node@(FunctionBlockStatement varType ident formalParams implicitParams body)) = 
     trace ("\n\nEntering Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  
-          ParserState $ let (_,s) =  runState (checkFunctionAlreadyDefined ident node >> checkFunctionParameters formalParams implicitParams >>  storeFunctionIdent ident varType formalParams implicitParams >> reduceLexicalLevel formalParams implicitParams) env in s 
+          ParserState $ let (_,s) =  runState (checkFunctionAlreadyDefined ident node >> checkFunctionParameters formalParams implicitParams >>  checkFunctionUDTParameters formalParams implicitParams  >>  storeFunctionIdent ident varType formalParams implicitParams >> reduceLexicalLevel formalParams implicitParams) env in s 
 
 implicitTypeChecker (ParserState env) (ExitFunctionBlockStatementNode node@(FunctionBlockStatement varType ident formalParams implicitParams body)) = 
     trace ("\nExiting Function Definition: " ++ (show ident) ++ " Current Env:\n" ++ (showStack env) ++ "\n\n")  

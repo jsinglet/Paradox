@@ -20,6 +20,7 @@ data TypeCheckException =
     | ActualParamsMismatch String
     | MismatchedAssignmentTypes String
     | UndeclaredIdent String
+    | UndeclaredUDT String
     | ConflictingDefinitions String
     deriving (Eq, Show, Ord, Typeable)
 

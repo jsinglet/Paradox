@@ -1,0 +1,15 @@
+
+
+data IntToInta = (Int -> Int -> Int);
+
+
+fn Int weirdFunction(Int a, Int b, IntToInt f) {
+   String y;
+   return f(a,b);
+}
+
+fn Int goodFunction(Int a, Int b){
+  return 0;
+}
+
+weirdFunction(1,2,goodFunction);

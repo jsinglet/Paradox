@@ -1,0 +1,79 @@
+//
+// Computes factorial of 10 (and sums the terms)
+//
+
+// fn Int fact(Int n)  {
+   
+//    if (n=0){
+//       return n;
+//    }
+
+//    return n*(fact(n-1));
+// }
+
+
+// Int factOf10;
+
+// factOf10 := fact(10);
+
+
+
+
+/////////////////////////////////////////////
+
+
+
+// fn Int fact(Int n) implicitly [Int sum] {
+//    sum := sum+n;
+   
+//    if (n=0){
+//       return n;
+//    }
+
+//    return n*(fact(n-1));
+// }
+
+// Int factOf10;
+
+// factOf10 := fact(10);
+
+
+///////////////////////////////////////////////
+
+
+// fn Int fact(Int n) implicitly [Int sum] {
+
+//    sum := sum+n;
+   
+//    if (n=0){
+//       return n;
+//    }
+
+//    return n*(fact(n-1));
+// }
+
+// String sum;
+// Int factOf10;
+
+// factOf10 := fact(10);
+
+
+
+/////////////////////////////////////////////////
+
+
+// fn Int fact(Int n) implicitly [Int sum] {
+
+//    sum := sum+n;
+
+//    if (n=0){
+//       return n;
+//    }
+
+//    return n*(fact(n-1));
+// }
+
+// Int sum;
+// Int factOf10;
+
+// factOf10 := fact(10);
