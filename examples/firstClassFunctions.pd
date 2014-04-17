@@ -6,8 +6,4 @@ fn Int doMathOp(Int op1, Int op2){
    return (op1+op2);
 }
 
-Boolean a;
-
-
-
 doMathOp(5,19999);

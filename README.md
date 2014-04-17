@@ -12,13 +12,19 @@ To build:
 # cabal build
 ```
 
+It is possible you won't have all the cabal libraries installed. In that case, examine the output from cabal build/configure and install the packages as follows (for the monads-tf package, for example):
+
+```shell
+# cabal install monads-tf
+```
+
 To run all the tests:
 
 ```shell
 # cabal test
 ```
 
-To run Paradox, you can do a "cabal install," and run it from your PATH or by referencing it from the current directory. There are plenty of examples in the examples/ directory.
+To run Paradox, you can do a "cabal install," and run it from your PATH or by referencing it from the current directory. There are plenty of examples in the examples/ directory. The samples shown during my presentation are in the examples/talk-examples. Note that they are only for reference (you are better of running examples from the examples directory).
 
 ```shell
 Usage: paradox [ -unparse | -ast | -check ] FILE
@@ -26,7 +32,7 @@ Usage: paradox [ -unparse | -ast | -check ] FILE
 -ast:           Display the AST of program contained in FILE.
 -check:         TYPE CHECK the program contained in FILE.
 
-# dist/build/paradox/paradox -unparse examples/example1.pd
+# dist/build/paradox/paradox -check examples/example1.pd
 ```
 
 The -ast option will just display the AST along with a pretty printed AST for debugging purposes. 

@@ -1,6 +1,6 @@
 
 
-data IntToInta = (Int -> Int -> Int);
+data IntToInt = (Int -> Int -> Int);
 
 
 fn Int weirdFunction(Int a, Int b, IntToInt f) {
@@ -12,4 +12,4 @@ fn Int goodFunction(Int a, Int b){
   return 0;
 }
 
-weirdFunction(1,2,goodFunction);
+//weirdFunction(1,2,goodFunction);

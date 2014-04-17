@@ -32,9 +32,9 @@ showStack e = concatMap (\x -> (show x) ++ "\n----------------------------------
 
 trace :: String -> a -> a
 -- quiet version 
-trace _ a = a
+-- trace _ a = a
 -- loud version 
---trace s a = D.trace s a 
+trace s a = D.trace s a 
 
 
 chomp :: String -> String 
@@ -266,9 +266,12 @@ checkActualParams l ident node = do
   (Just fn) <- getIdent ident
   actualParams <- popActualParams l
   let (Just (VarSpecList spec)) = methodSpec fn
-  -- the intersection of their type signatures should be equal
-  let lhs = map (identType) actualParams 
+  -- TODO: Here we want to transform the lhs and the rhs.
+  -- essentually we want to check that the type of the function we are pointing at can 
+  -- match the lhs/rhs.
+  let lhs = trace (show actualParams) $ map (identType) actualParams 
   let rhs = map (\(VarSpec t _) -> t) (spec)
+  -- it's possible that they passed in a function argument. 
   case (lhs == rhs) of
     True -> return ()
     False -> trace ("lhs: " ++ (show lhs) ++ " rhs: " ++ (show rhs) ) throw (ActualParamsMismatch $ "Actual Parameters do not match function formal parameters: " ++ chomp (unparse node 0 "")  ++ " [checkActualParams]") 

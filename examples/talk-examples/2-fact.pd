@@ -62,18 +62,18 @@
 /////////////////////////////////////////////////
 
 
-// fn Int fact(Int n) implicitly [Int sum] {
+fn Int fact(Int n) {
 
-//    sum := sum+n;
 
-//    if (n=0){
-//       return n;
-//    }
 
-//    return n*(fact(n-1));
-// }
+   if (n=0){
+      return n;
+   }
 
-// Int sum;
-// Int factOf10;
+   return n*(fact(n-1));
+}
 
-// factOf10 := fact(10);
+Int sum;
+Int factOf10;
+
+factOf10 := fact(10);

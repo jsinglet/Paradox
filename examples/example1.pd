@@ -1,17 +1,18 @@
 //
 // example1.pd
 //
-// Minimal example containing all language features.
+// Minimal example containing basic language features.
 
 
 
 // Simple Var Declarations
 Int a;
-// Int b;
-// String c;
+Int b;
+Int c;
+Int d;
 
 // Assignments
-c := 2;
+c := 3;
 d := (3 + 3);
 d := (3 + a + (a * 2));
 
@@ -24,7 +25,7 @@ fn Int myFunction1(Int x, Int y)
    c := 2;
    d := (3 + 3);
 
-   return a;
+   return c;
 
 }
 
@@ -36,6 +37,9 @@ fn Int myFunction2(Int x, Int y) implicitly [Int zzzz, String xxxxxx]
 
    return x;
 }
+
+Int zzzz;
+String xxxxxx;
 
 // Function calls
 a := myFunction1(2+2,3);
