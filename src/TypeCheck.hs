@@ -34,9 +34,9 @@ showStack e = concatMap (\x -> (show x) ++ "\n----------------------------------
 
 trace :: String -> a -> a
 -- quiet version 
--- trace _ a = a
+trace _ a = a
 -- loud version 
-trace s a = D.trace s a 
+--trace s a = D.trace s a 
 
 
 chomp :: String -> String 
