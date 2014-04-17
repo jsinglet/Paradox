@@ -1,17 +1,18 @@
 //
-// Just like firstClassFunctions3, but trying to be sneaky with implicit functions
+// Just like firstClassFunctions3, but trying to be sneaky 
 //
+
 
 data IntToInt = (Int -> Int -> Int);
 
-fn Int otherFunction(Int a, Int b) implicitly [IntToInt f]{
-   return a+b;
+fn Int foo(Int a, Int b){ return 1; }
+
+fn Int otherFunction(Int a, Int b, IntToInt f) {
+   return otherFunction(a,b, foo);
 }
 
-fn Int weirdFunction(Int a, Int b, IntToInt f) {
+fn Int weirdFunction(Int a, Int b) {
    String y;
-   return otherFunction(a,b);
+   return otherFunction(a,b, foo);
 }
-
-
 
