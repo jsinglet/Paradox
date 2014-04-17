@@ -8,8 +8,14 @@ fn Int weirdFunction(Int a, Int b, IntToInt f) {
    return f(a,b);
 }
 
-fn Int goodFunction(Int a, Int b){
+fn Int goodFunction(Int a, Int b) {
   return 0;
 }
 
-//weirdFunction(1,2,goodFunction);
+weirdFunction(1, 4, goodFunction);
+
+Int a;
+Int b;
+
+
+a :=b;

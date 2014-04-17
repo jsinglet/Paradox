@@ -23,6 +23,8 @@ data EnvEntry = EnvEntry {
 
 type Env = [EnvEntry]
 
+type TypeSignature = String
+
 instance Show EnvEntry where
     show a = let l = (identName a, identType a, level a, udtSpec a) in (show l)
 
@@ -53,6 +55,16 @@ instance Monad (TCParserState s) where
 
 newEnv :: Env
 newEnv = [EnvEntry "________basePointer" VoidType Nothing Nothing 0 Nothing]
+
+-- _infType if it's a normal ident, otherwise _infType:<functionName>
+createInfTypeName :: Ident -> TCParserState Env Ident
+createInfTypeName ident = do
+  (Just theIdent) <- getIdent ident
+  case (methodSpec theIdent) of
+    (Just (VarSpecList spec)) -> trace ("Creating Function Inf Type") $ return ("_infType:" ++ ident)
+    _ -> trace ("Creating Regular Inf Type") $ return ("_infType")
+
+
 
 --
 -- TCParserState manipulation and query functions
@@ -89,9 +101,9 @@ storeIdent ident varType = do
   push (EnvEntry ident varType Nothing Nothing cl Nothing) 
 
 storeUDT :: Ident -> UDTVarSpecList -> TCParserState Env ()
-storeUDT ident spec = do 
+storeUDT ident l@(UDTVarSpecList spec) = do 
   cl <- currLevel
-  push (EnvEntry ident VoidType Nothing Nothing cl (Just spec))
+  push (EnvEntry ident (head spec) Nothing Nothing cl (Just l))
 
 storeFunctionIdent :: Ident -> Type -> VarSpecList -> VarSpecList  -> TCParserState Env ()
 storeFunctionIdent ident varType (VarSpecList formalParams) (ImplicitVarSpec (VarSpecList implicitParams)) = do 
@@ -148,7 +160,7 @@ clearLevel :: Int -> TCParserState Env ()
 clearLevel l = TCParserState $ \xs -> ((), filter (\e -> level e /= l) xs)
 
 clearInf :: TCParserState Env ()
-clearInf = TCParserState $ \xs -> ((), filter (\e -> identName e /= "_infType") xs)
+clearInf = TCParserState $ \xs -> ((), filter (\e -> not $ startswith "_infType" (identName e)) xs)
 
 enterBlock :: TCParserState Env ()
 enterBlock = do 
@@ -251,15 +263,50 @@ checkImplicitParams ident node = do
                          -- For each member of the implicit spec, ensure the following:
                          -- 1) That it is defined in the current env
                          -- 2) That the types match
-                         mapM (\(VarSpec t i) -> do 
+
+
+                         mapM (\ms@(VarSpec t i) -> do 
+                                 -- map the specificed type to a type string
+                                 ts1 <- typifyMethodSpec [ms]
                                  implicitParam <- getIdent i
                                  case (implicitParam) of 
-                                   (Just i') -> if t==(identType i') then return () else  throw (ImplicitParamsMismatch $ "Implicit parameter types do not match in function call: " ++ chomp (unparse node 0 "") ++ " for variable: " ++ (show i) ++ ".\n Expected: " ++ (show t) ++ ", Actual: " ++ (show $ identType i')  ++ " [checkImplicitParams]")
+                                   (Just i') -> do
+                                     ts2 <- typifyEnvList [i']
+                                     if trace ("Infered Types: ts1=" ++ (show ts1) ++ " ts2=" ++ (show ts2) ++ " Local type=" ++ (show ms)) $ ts1==ts2 then return () else  throw (ImplicitParamsMismatch $ "Implicit parameter types do not match in function call: " ++ chomp (unparse node 0 "") ++ " for variable: " ++ (show i) ++ ".\n Expected: " ++ (show ts1) ++ ", Actual: " ++ (show $ identType i')  ++ " [checkImplicitParams]")
                                    Nothing   -> throw (ImplicitParamsUndefined $ "Implicit parameter not defined in function call: " ++ chomp (unparse node 0 "") ++ " for parameter: " ++ (show i)  ++ " [checkImplicitParams]")
                               ) spec
                          return ()
     _ -> return () -- in this case it's to be ignored.
 
+typifyEnvList :: [EnvEntry] -> TCParserState Env [TypeSignature]
+typifyEnvList entries = do 
+  trace (show entries) $mapM (\ident -> do 
+                                -- it's a function!
+                                case (startswith "_infType:" (identName ident)) of 
+                                  True -> do 
+                                    (Just theIdent) <- getIdent ((split ":" (identName ident)) !! 1)
+                                    case ((methodSpec theIdent), (implicitSpec theIdent)) of
+                                      -- yes! construct an arrow equivilant version of the function
+                                      (Just (VarSpecList spec), Just (VarSpecList ispec)  ) -> return (concat $ (intersperse "->" ((map (\(VarSpec t _) -> (show t)) (spec++ispec)) ++ [show $ identType ident])))
+                                      _ -> error "Found a function ident with no definition!"
+                                  False -> return (show $ identType ident) 
+                                
+       ) entries
+
+
+typifyMethodSpec :: [VarSpec] -> TCParserState Env [TypeSignature]
+typifyMethodSpec entries = do 
+  mapM (\x-> case x of 
+              -- it's a higher order type (transform into a (a->a->a) representation.
+              (VarSpec (IdentType higherOrderType) _ ) -> do 
+                (Just ident) <- getIdent higherOrderType
+                let spec = (udtSpec ident)
+                case spec of
+                  Just (UDTVarSpecList theSpecs) -> return (concat $ (intersperse "->" ((map (\s -> (show s)) theSpecs))))
+                  _ -> error "Unexpected error: Found a UDT Spec with no definition!"
+              -- anything else
+              (VarSpec t _) -> return (show t)
+      ) entries
 
 checkActualParams :: Int -> Ident -> Expression -> TCParserState Env ()
 checkActualParams l ident node = do 
@@ -269,11 +316,11 @@ checkActualParams l ident node = do
   -- TODO: Here we want to transform the lhs and the rhs.
   -- essentually we want to check that the type of the function we are pointing at can 
   -- match the lhs/rhs.
-  let lhs = trace (show actualParams) $ map (identType) actualParams 
-  let rhs = map (\(VarSpec t _) -> t) (spec)
+  lhs <- trace ("PRE LHS=:" ++ (show actualParams)) $ (typifyEnvList (actualParams)) -- = trace (show actualParams) $ map (show.identType) actualParams 
+  rhs <- (typifyMethodSpec spec)-- map (\(VarSpec t _) -> t) (spec)
   -- it's possible that they passed in a function argument. 
   case (lhs == rhs) of
-    True -> return ()
+    True -> trace ("Check OK===" ++ "lhs: " ++ (show lhs) ++ " rhs: " ++ (show rhs)) $ return ()
     False -> trace ("lhs: " ++ (show lhs) ++ " rhs: " ++ (show rhs) ) throw (ActualParamsMismatch $ "Actual Parameters do not match function formal parameters: " ++ chomp (unparse node 0 "")  ++ " [checkActualParams]") 
   
   
@@ -381,7 +428,7 @@ implicitTypeChecker (ParserState env) (StatementNode node@(AssignStatement ident
           let (_,s) = runState (checkAssignmentTypes ident node) env in s 
 
 implicitTypeChecker (ParserState env) (FactorNode (FactorIntegerLiteralExpression i )) = 
-    trace ("Pushing " ++ (show i)) 
+    trace ("Pushing " ++ (show i) ++ "Current Stack: " ++ (showStack env)) 
               $ ParserState $ let (_,s) = runState (storeIdent "_infType" IntType) env in  s 
 
 
@@ -394,9 +441,15 @@ implicitTypeChecker (ParserState env) (FactorNode (FactorStringLiteralExpression
     trace ("Pushing " ++ (show i)) $ ParserState $ 
           let (_,s) = runState (storeIdent "_infType" StringType) env in  s
 
+
+
 implicitTypeChecker (ParserState env) (FactorNode (IdentExpression i )) = 
     trace ("Pushing ident " ++ (show i) ++ " with type: ") $ 
-          ParserState $ let (_,s) = runState (checkResolveIdentType i >>= storeIdent "_infType") env in s
+          ParserState $ let (_,s) = runState (do 
+                                               t <- checkResolveIdentType i
+                                               n <- createInfTypeName i
+                                               (storeIdent n t)
+                                             ) env in s
 
 implicitTypeChecker (ParserState env) (StatementNode (FunctionCallStatement node@(FunctionCallExpression ident (ActualParametersList actualParams)))) = 
     trace ("Pushing function ident: " ++ (show ident) ++  " Current Env:\n" ++ (showStack env) ++ "\n\n") $ 

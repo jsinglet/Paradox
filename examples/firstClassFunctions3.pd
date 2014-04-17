@@ -1,0 +1,17 @@
+//
+// Just like firstClassFunctions3, but trying to be sneaky with implicit functions
+//
+
+data IntToInt = (Int -> Int -> Int);
+
+fn Int otherFunction(Int a, Int b) implicitly [IntToInt f]{
+   return a+b;
+}
+
+fn Int weirdFunction(Int a, Int b, IntToInt f) {
+   String y;
+   return otherFunction(a,b);
+}
+
+
+

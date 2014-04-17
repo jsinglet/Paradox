@@ -36,7 +36,7 @@ testMissingImplicitParam2 = assertRaises "throw exception" ( ImplicitParamsUndef
 
 
 testImplicitParamsMismatch :: Assertion
-testImplicitParamsMismatch = assertRaises "throw exception" ( ImplicitParamsMismatch "Implicit parameter types do not match in function call: bar() for variable: \"x\".\n Expected: IntType, Actual: StringType [checkImplicitParams]") (evaluate (length $ (internalParserState (testTypeCheck implicitParamsTypeMismatch))))
+testImplicitParamsMismatch = assertRaises "throw exception" ( ImplicitParamsMismatch "Implicit parameter types do not match in function call: bar() for variable: \"x\".\n Expected: [\"IntType\"], Actual: StringType [checkImplicitParams]") (evaluate (length $ (internalParserState (testTypeCheck implicitParamsTypeMismatch))))
 
  
 assignMismatch :: String
